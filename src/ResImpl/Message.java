@@ -3,12 +3,17 @@ package ResImpl;
 import java.io.Serializable;
 import java.util.ArrayList;
 
-public class Message {
+public class Message implements Serializable {
+	private static final long serialVersionUID = 1337L;
+	Address to;
+	Address from;
 	int id;
 	String type;
 	ArrayList<Serializable> data;   // an arraylist of serializable objects
 	
-	public Message(int id, String type, ArrayList<Serializable> data) {
+	public Message(Address to, Address from, int id, String type, ArrayList<Serializable> data) {
+		this.to = to;
+		this.from = from;
 		this.id = id;
 		this.type = type;
 		this.data = (ArrayList<Serializable>) data.clone();
