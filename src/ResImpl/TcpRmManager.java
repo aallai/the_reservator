@@ -1,20 +1,32 @@
 package ResImpl;
 
 import java.rmi.RemoteException;
+import java.lang.Runnable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Vector;
+import java.util.HashMap;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.io.Serializable;
 
-public class TcpRmManager implements ResInterface.ResourceManager {
-	
+public class TcpRmManager implements ResInterface.ResourceManager, ResInterface.Callback, Runnable 
+{
+	Address self;
 	Address flight_rm;
 	Address car_rm;
 	Address room_rm;
 	Address itin_rm;
+	Communicator com;
+	HashMap<String, Method> actions;
+	HashMap<Integer, Message> requests;
 	
 	int port;
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) 
+	{
 		// first argument is port to listen on, the rest is a list of active rm in host:port format
 
 		String usage = "Usage : " + args[0] + " server_port rm_host1:port1 rm_host2:port2 ...";
@@ -24,7 +36,6 @@ public class TcpRmManager implements ResInterface.ResourceManager {
 			port = Integer.parseInt(args[0]); 
 		} catch (NumberFormatException e) {
 			System.err.println(usage);
-			System.err.println("one");
 			System.exit(-1);
 		}
 		
@@ -33,16 +44,17 @@ public class TcpRmManager implements ResInterface.ResourceManager {
 			try {
 				active_rms.add(new Address(args[i].split(":")[0], Integer.parseInt(args[i].split(":")[1])));
 			} catch (Exception e) {
-				System.err.println("two");
 				System.err.println(usage);
 				System.exit(-1);
 			}
 		}
 		
 		TcpRmManager manager = new TcpRmManager(port, active_rms);
+		manager.run();
 	}
 	
-	public TcpRmManager(int port, ArrayList<Address> active_rms) {
+	public TcpRmManager(int port, ArrayList<Address> active_rms) 
+	{
 		Address[] rms = new Address[4];
 		int i = 0;
 		
@@ -68,8 +80,75 @@ public class TcpRmManager implements ResInterface.ResourceManager {
 		this.car_rm = rms[1];
 		this.room_rm = rms[2];
 		this.itin_rm = rms[3];
+		this.com = new Communicator(port, this);
+		try {
+			this.self = new Address(InetAddress.getLocalHost().getHostName(), port);
+		} catch (UnknownHostException e) {
+			System.err.println("Is that you John Wayne? Is it me?");
+		}
+			
+		actions = init_actions();
 	}
+	
+	private HashMap<String, Method> init_actions() 
+	{
+		HashMap<String, Method> ret = new HashMap<String, Method>();
+		
+		Method[] methods = this.getClass().getDeclaredMethods();
+		for (Method m : methods) {
+			ret.put(m.getName(), m);
+		}
+		return ret;
+	}
+	
+	public void run() 
+	{
+		com.init();
+	}
+	
+	/**
+	 * Where the actions happen.
+	 */
+	public void received(Message m)
+	{
+		if (actions.containsKey(m.type)) {
 
+			Method act = actions.get(m.type);
+			Serializable result ;
+
+			try {
+				result = (Serializable) act.invoke(this, m.data.toArray());
+				send_result(m.from, m.id, result);
+
+			} catch (IllegalArgumentException e) {
+
+				send_error(m.from, m.id, "Wrong parameters for operation: " + m.type);
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			} 
+			
+		} else {
+			send_error(m.from, m.id, "Requested unsupported operation: " + m.type);
+		}
+	}
+	
+	private void send_result(Address to, int id, Serializable result)
+	{
+		ArrayList<Serializable> data = new ArrayList<Serializable>();
+		data.add(result);
+		Message m = new Message(to, self, id, "result", data);
+		com.send(m);
+	}
+	
+	private void send_error(Address to, int id, String info)
+	{
+		ArrayList<Serializable> data = new ArrayList<Serializable>();
+		data.add(info);
+		Message error = new Message(to, self, id, "error", data);
+		com.send(error);
+	}
+	
 	@Override
 	public boolean addFlight(int id, int flightNum, int flightSeats,
 			int flightPrice) throws RemoteException {
@@ -198,4 +277,5 @@ public class TcpRmManager implements ResInterface.ResourceManager {
 		// TODO Auto-generated method stub
 		return false;
 	}
+
 }
