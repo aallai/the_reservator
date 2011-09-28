@@ -12,7 +12,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.io.Serializable;
 
-public class TcpRmManager implements ResInterface.ResourceManager, ResInterface.Callback, Runnable 
+public class TcpRmManager implements ResInterface.Callback, Runnable 
 {
 	Address self;
 	Address flight_rm;
@@ -21,7 +21,7 @@ public class TcpRmManager implements ResInterface.ResourceManager, ResInterface.
 	Address itin_rm;
 	Communicator com;
 	HashMap<String, Method> actions;
-	HashMap<Integer, Message> requests;
+	HashMap<Integer, Serializable> results;
 	
 	int port;
 	
@@ -81,6 +81,7 @@ public class TcpRmManager implements ResInterface.ResourceManager, ResInterface.
 		this.room_rm = rms[2];
 		this.itin_rm = rms[3];
 		this.com = new Communicator(port, this);
+
 		try {
 			this.self = new Address(InetAddress.getLocalHost().getHostName(), port);
 		} catch (UnknownHostException e) {
@@ -114,11 +115,9 @@ public class TcpRmManager implements ResInterface.ResourceManager, ResInterface.
 		if (actions.containsKey(m.type)) {
 
 			Method act = actions.get(m.type);
-			Serializable result ;
 
 			try {
-				result = (Serializable) act.invoke(this, m.data.toArray());
-				send_result(m.from, m.id, result);
+				act.invoke(this, m.data.toArray());
 
 			} catch (IllegalArgumentException e) {
 
@@ -133,44 +132,94 @@ public class TcpRmManager implements ResInterface.ResourceManager, ResInterface.
 		}
 	}
 	
-	private void send_result(Address to, int id, Serializable result)
+	/**
+	 * Called when the server receives a result from one of the RMs.
+	 * 
+	 * @param id
+	 * @param obj
+	 */
+	public void result(int id, Serializable obj)
 	{
-		ArrayList<Serializable> data = new ArrayList<Serializable>();
-		data.add(result);
-		Message m = new Message(to, self, id, "result", data);
-		com.send(m);
+		synchronized(this.results) {
+			this.results.put(id, obj);
+			this.results.notifyAll();
+		}
+	}
+	
+	private Serializable get_result(int id)
+	{
+		// TODO: add timeouts
+		
+		synchronized(this.results) {
+			
+			while (!this.results.containsKey(id)) {
+				try {
+					this.results.wait();
+					
+				} catch (InterruptedException e) {
+					continue;
+				}
+			}
+			return this.results.get(id);
+		}
+	}
+	
+	/**
+	 * Called when the server receives an error message from one of the RMs
+	 * Note that this notifies of communication errors and whatnot, a failure
+	 * booking a flight would be signaled by returning a false boolean value.
+	 */
+	public void error(Address from, int id, String info)
+	{
+		System.err.println("TcpRmManager() : error recived from " + from.toString() + 
+								" for request " + id );
+		System.err.println("---");
+		System.err.println(info);
+		System.err.println("---");
 	}
 	
 	private void send_error(Address to, int id, String info)
 	{
 		ArrayList<Serializable> data = new ArrayList<Serializable>();
+		data.add(self);
+		data.add(id);
 		data.add(info);
 		Message error = new Message(to, self, id, "error", data);
 		com.send(error);
 	}
 	
-	@Override
-	public boolean addFlight(int id, int flightNum, int flightSeats,
-			int flightPrice) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+	
+	public void addFlight(Address from, int id, int flightNum, int flightSeats, int flightPrice) 
+	{
+		ArrayList<Serializable> data = new ArrayList<Serializable>();
+		data.add(self);
+		data.add(id); 
+		data.add(flightNum);
+		data.add(flightSeats);
+		data.add(flightPrice);
+		
+		Message m = new Message(this.flight_rm, this.self, id, "addFlight", data);
+		com.send(m);
+		
+		Serializable result = get_result(id);
+		
+		data.clear();
+		data.add(result);
+		m = new Message(from, this.self, id, "result", data);
 	}
 
-	@Override
 	public boolean addCars(int id, String location, int numCars, int price)
 			throws RemoteException {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean addRooms(int id, String location, int numRooms, int price)
 			throws RemoteException {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public int newCustomer(int id) throws RemoteException {
 		// TODO Auto-generated method stub
 		return 0;
