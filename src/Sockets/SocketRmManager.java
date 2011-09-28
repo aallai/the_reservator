@@ -16,14 +16,14 @@ import ResInterface.Callback;
 
 public class SocketRmManager implements ResInterface.Callback, Runnable 
 {
-	Address self;
-	Address flight_rm;
-	Address car_rm;
-	Address room_rm;
-	Address itin_rm;
-	Communicator com;
-	HashMap<String, Method> actions;
-	HashMap<Integer, Serializable> results;
+	private Address self;
+	private Address flight_rm;
+	private Address car_rm;
+	private Address room_rm;
+	private Address itin_rm;
+	private Communicator com;
+	private HashMap<String, Method> actions;
+	private HashMap<Integer, Serializable> results;
 	
 	int port;
 	
