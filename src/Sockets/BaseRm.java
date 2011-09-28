@@ -7,18 +7,86 @@ package Sockets;
 import ResInterface.*;
 import ResImpl.*;
 
+import java.io.Serializable;
+import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 
 /*
  * Copy-paste of the class that was provided with
- * the rmi code stripped out.
+ * the rmi code stripped out, and some common code
  */
 
 public abstract class BaseRm
-	implements ResourceManager {
+	implements ResourceManager, Callback, Runnable {
 	
+	Address self;
+	Communicator com;
+	HashMap<String, Method> actions;
 	RMHashtable m_itemHT = new RMHashtable();
+	
+	public BaseRm(int port)
+	{
+		try {
+			this.self = new Address(InetAddress.getLocalHost().getHostName(), port);
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
+		
+		this.com = new Communicator(port, this);
+		this.actions = init_actions();
+	}
+	
+	private HashMap<String, Method> init_actions() 
+	{
+		HashMap<String, Method> ret = new HashMap<String, Method>();
+		
+		Method[] methods = this.getClass().getDeclaredMethods();
+		for (Method m : methods) {
+			ret.put(m.getName(), m);
+		}
+		return ret;
+	}
+	
+	public void run() {
+		com.init();
+	}
+	
+	/**
+	 * Where the actions happen.
+	 */
+	public void received(Message m)
+	{
+		if (actions.containsKey(m.type)) {
 
+			Method act = actions.get(m.type);
+
+			try {
+				act.invoke(this, m.data.toArray());
+
+			} catch (IllegalArgumentException e) {
+
+				send_error(m.from, m.id, "Wrong parameters for operation: " + m.type);
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			} 
+			
+		} else {
+			send_error(m.from, m.id, "Requested unsupported operation: " + m.type);
+		}
+	}
+	
+	void send_error(Address to, int id, String info)
+	{
+		ArrayList<Serializable> data = new ArrayList<Serializable>();
+		data.add(self);
+		data.add(id);
+		data.add(info);
+		Message error = new Message(to, self, id, "error", data);
+		com.send(error);
+	}
 
 	// Reads a data item
 	private RMItem readData( int id, String key )

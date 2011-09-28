@@ -14,18 +14,13 @@ import java.io.Serializable;
 
 import ResInterface.Callback;
 
-public class SocketRmManager implements ResInterface.Callback, Runnable 
+public class SocketRmManager extends BaseRm 
 {
-	private Address self;
 	private Address flight_rm;
 	private Address car_rm;
 	private Address room_rm;
-	private Address itin_rm;
 	private Communicator com;
-	private HashMap<String, Method> actions;
 	private HashMap<Integer, Serializable> results;
-	
-	int port;
 	
 	public static void main(String[] args) 
 	{
@@ -57,7 +52,9 @@ public class SocketRmManager implements ResInterface.Callback, Runnable
 	
 	public SocketRmManager(int port, ArrayList<Address> active_rms) 
 	{
-		Address[] rms = new Address[4];
+		super(port);
+		
+		Address[] rms = new Address[3];
 		int i = 0;
 		
 		for (Address a : active_rms) {
@@ -77,61 +74,9 @@ public class SocketRmManager implements ResInterface.Callback, Runnable
 			}
 		}
 		
-		this.port = port;
 		this.flight_rm = rms[0];
 		this.car_rm = rms[1];
 		this.room_rm = rms[2];
-		this.itin_rm = rms[3];
-		this.com = new Communicator(port, this);
-
-		try {
-			this.self = new Address(InetAddress.getLocalHost().getHostName(), port);
-		} catch (UnknownHostException e) {
-			System.err.println("Is that you John Wayne? Is it me?");
-		}
-			
-		actions = init_actions();
-	}
-	
-	private HashMap<String, Method> init_actions() 
-	{
-		HashMap<String, Method> ret = new HashMap<String, Method>();
-		
-		Method[] methods = this.getClass().getDeclaredMethods();
-		for (Method m : methods) {
-			ret.put(m.getName(), m);
-		}
-		return ret;
-	}
-	
-	public void run() 
-	{
-		com.init();
-	}
-	
-	/**
-	 * Where the actions happen.
-	 */
-	public void received(Message m)
-	{
-		if (actions.containsKey(m.type)) {
-
-			Method act = actions.get(m.type);
-
-			try {
-				act.invoke(this, m.data.toArray());
-
-			} catch (IllegalArgumentException e) {
-
-				send_error(m.from, m.id, "Wrong parameters for operation: " + m.type);
-
-			} catch (Exception e) {
-				e.printStackTrace();
-			} 
-			
-		} else {
-			send_error(m.from, m.id, "Requested unsupported operation: " + m.type);
-		}
 	}
 	
 	/**
@@ -167,8 +112,7 @@ public class SocketRmManager implements ResInterface.Callback, Runnable
 	}
 	
 	/**
-	 * Called when the server receives an error message from one of the RMs
-	 * Note that this notifies of communication errors and whatnot, a failure
+	 * More of a debug feature, a failure, let's say,
 	 * booking a flight would be signaled by returning a false boolean value.
 	 */
 	public void error(Address from, int id, String info)
@@ -180,18 +124,32 @@ public class SocketRmManager implements ResInterface.Callback, Runnable
 		System.err.println("---");
 	}
 	
-	private void send_error(Address to, int id, String info)
+	public void received(Message m) 
 	{
-		ArrayList<Serializable> data = new ArrayList<Serializable>();
-		data.add(self);
-		data.add(id);
-		data.add(info);
-		Message error = new Message(to, self, id, "error", data);
-		com.send(error);
+		if (actions.containsKey(m.type)) {
+			Address to = resolve_rm(m.type);
+			
+		} else {
+			send_error(m.from, m.id, "Requested unsupported operation: " + m.type);
+		}
+		
 	}
 	
+	private Address resolve_rm(String type)
+	{
+		Address ret = null;
+		if (type.toLowerCase().contains("car")) {
+			ret = this.car_rm;
+		} else if (type.toLowerCase().contains("flight")) {
+			ret = this.flight_rm;
+		} else if (type.toLowerCase().contains("room")) {
+			ret = this.room_rm;
+		}
+		
+		return ret;
+	}
 	
-	public void addFlight(Address from, int id, int flightNum, int flightSeats, int flightPrice) 
+	public void addFlight(int id, int flightNum, int flightSeats, int flightPrice) 
 	{
 		ArrayList<Serializable> data = new ArrayList<Serializable>();
 		data.add(self);
@@ -209,108 +167,4 @@ public class SocketRmManager implements ResInterface.Callback, Runnable
 		data.add(result);
 		m = new Message(from, this.self, id, "result", data);
 	}
-
-	public boolean addCars(int id, String location, int numCars, int price)
-			throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	public boolean addRooms(int id, String location, int numRooms, int price)
-			throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	public int newCustomer(int id) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	public boolean newCustomer(int id, int cid) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	public boolean deleteFlight(int id, int flightNum) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	public boolean deleteCars(int id, String location) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	public boolean deleteRooms(int id, String location) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	public boolean deleteCustomer(int id, int customer) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	public int queryFlight(int id, int flightNumber) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	public int queryCars(int id, String location) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	public int queryRooms(int id, String location) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	public String queryCustomerInfo(int id, int customer)
-			throws RemoteException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public int queryFlightPrice(int id, int flightNumber)
-			throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	public int queryCarsPrice(int id, String location) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	public int queryRoomsPrice(int id, String location) throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	public boolean reserveFlight(int id, int customer, int flightNumber)
-			throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	public boolean reserveCar(int id, int customer, String location)
-			throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	public boolean reserveRoom(int id, int customer, String locationd)
-			throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	public boolean itinerary(int id, int customer, Vector flightNumbers,
-			String location, boolean Car, boolean Room) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
 }
