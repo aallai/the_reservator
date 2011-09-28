@@ -1,6 +1,6 @@
 package ResInterface;
 
-import ResImpl.Message;
+import Sockets.Message;
 
 public interface Callback {
 	/**
