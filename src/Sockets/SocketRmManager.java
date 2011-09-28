@@ -62,13 +62,13 @@ public class SocketRmManager extends BaseRm
 				rms[i] = a;
 				i++;
 			} catch (IndexOutOfBoundsException e) { 
-				System.err.println("TcpRmManager() : Ignored one or more rms passed in to constructor.");
+				System.err.println("SocketRmManager() : Ignored one or more rms passed in to constructor.");
 				break;
 			}
 		}
 		
 		if (i < rms.length) {
-			System.err.println("TcpManager() : Fewer than four active rms prvided.");
+			System.err.println("SocketRmManager() : Fewer than four active rms prvided.");
 			for (; i < rms.length; i++) {
 				rms[i] = active_rms.get(0);
 			}
@@ -117,7 +117,7 @@ public class SocketRmManager extends BaseRm
 	 */
 	public void error(Address from, int id, String info)
 	{
-		System.err.println("TcpRmManager() : error recived from " + from.toString() + 
+		System.err.println("SocketRmManager.error() : error recived from " + from.toString() + 
 								" for request " + id );
 		System.err.println("---");
 		System.err.println(info);
@@ -126,9 +126,27 @@ public class SocketRmManager extends BaseRm
 	
 	public void received(Message m) 
 	{
+		
+		// TODO : add special case of itinerary
+		
 		if (actions.containsKey(m.type)) {
 			Address to = resolve_rm(m.type);
 			
+			if (to == null) {
+				System.err.println("SocketRmManager.received() : Could not find rm for request " + m.type);
+				return;
+			}
+			
+			Message f = new Message(to, this.self, m.id, m.type, m.data);
+			com.send(f);
+			
+			// blocks here
+			Serializable result = get_result(m.id);
+			
+			f.data.clear();
+			f.data.add(result);
+			f = new Message(m.from, this.self, m.id, "result", f.data);
+			com.send(f);
 		} else {
 			send_error(m.from, m.id, "Requested unsupported operation: " + m.type);
 		}
@@ -147,24 +165,5 @@ public class SocketRmManager extends BaseRm
 		}
 		
 		return ret;
-	}
-	
-	public void addFlight(int id, int flightNum, int flightSeats, int flightPrice) 
-	{
-		ArrayList<Serializable> data = new ArrayList<Serializable>();
-		data.add(self);
-		data.add(id); 
-		data.add(flightNum);
-		data.add(flightSeats);
-		data.add(flightPrice);
-		
-		Message m = new Message(this.flight_rm, this.self, id, "addFlight", data);
-		com.send(m);
-		
-		Serializable result = get_result(id);
-		
-		data.clear();
-		data.add(result);
-		m = new Message(from, this.self, id, "result", data);
 	}
 }
