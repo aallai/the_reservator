@@ -154,7 +154,40 @@ public class MessageTest implements Callback
 		com.send(m);
 		Thread.sleep(100);
 		
+		// reserveCar
+		m = new Message(rm, self, id++, "newCustomer", data);
+		com.send(m);
+		Thread.sleep(100);
 		
+		data.clear();
+		data.add(id);
+		data.add(1337);
+		data.add("HILTON");
+		m = new Message(rm, self, id++, "reserveCar", data);
+		com.send(m);
+		Thread.sleep(100);
+		
+		// reserveRoom
+		m = new Message(rm, self, id++, "reserveRoom", data);
+		com.send(m);
+		Thread.sleep(100);
+		
+		// reserveFlight
+		data.clear();
+		data.add(id);
+		data.add(1337);
+		data.add(1);
+		m = new Message(rm, self, id++, "reserveFlight", data);
+		com.send(m);
+		Thread.sleep(100);
+		
+		//queryCustomerInfo
+		data.clear();
+		data.add(id);
+		data.add(1337);
+		m = new Message(rm, self, id++, "queryCustomerInfo", data);
+		com.send(m);
+		Thread.sleep(100);
 	    
 		} catch (InterruptedException e) {}
 	}

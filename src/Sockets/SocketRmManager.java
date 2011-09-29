@@ -141,6 +141,8 @@ public class SocketRmManager extends BaseRm
 				newCustomer(m.from, m.id, m.data.toArray());
 			} else if (m.type.equals("deleteCustomer")) {
 				deleteCustomer(m.from, m.id, m.data.toArray());	
+			} else if (m.type.equals("queryCustomerInfo"))	{
+				queryCustomerInfo(m.from, m.id, m.data.toArray());
 				
 			} else {
 				
@@ -202,17 +204,19 @@ public class SocketRmManager extends BaseRm
 	public void newCustomer(Address from, int id, Object[] args)
 	{
 		boolean sendbool = true;
-		
-		ArrayList<Serializable> data = new ArrayList<Serializable>();
-		for (Object s : args) {
-			data.add((Serializable) s);
-		}
-		
+
 		/* don't let the servers auto-choose the cid because they dont do it so well
 		 the resource manager doesn't notify of failure for this, so
 		 I optimize and send the response back right away.*/
+
+		ArrayList<Serializable> data = new ArrayList<Serializable>();
+		for (Object o : args) {
+			data.add((Serializable) o);
+		}
+		
 		if (data.size() == 1) {
 			data.add(id);
+			
 			ArrayList<Serializable> result = new ArrayList<Serializable>();
 			result.add(id);
 			com.send(new Message(from, self, id, "result", result));
@@ -221,25 +225,18 @@ public class SocketRmManager extends BaseRm
 			sendbool = false;
 		}
 		
-		int[] ids = new int[] {get_id(), get_id(), get_id()};
-		int i = 0;
-		
-		for (Address to : new Address[] {this.flight_rm, this.room_rm, this.car_rm}) {
-			Message m = new Message(to, this.self, ids[i], "newCustomer", data);
-			com.send(m);
-			i++;
-		}
+		Serializable[] results = send_all_rms(data.toArray(), "newCustomer");
 		
 		if (sendbool) {
 			
 			boolean ret = true;
-			for (int uid : ids) {
-				Serializable result = get_result(uid);
-				
+			
+			for (Serializable result : results) {
 				if (!((Boolean) result).booleanValue()) {
 					ret = false;
 				}
 			}
+			
 			ArrayList<Serializable> r = new ArrayList<Serializable>();
 			r.add(ret);
 			Message m = new Message(from, self, id, "result", r);
@@ -248,6 +245,42 @@ public class SocketRmManager extends BaseRm
 	}
 		
 	public void deleteCustomer(Address from, int id, Object[] args) 
+	{
+	
+		Serializable[] results = send_all_rms(args, "deleteCustomer");
+		boolean ret = true;
+		
+		for (Serializable res : results) {
+			if (!((Boolean) res).booleanValue()) {
+				ret = false;
+			}
+		}
+		ArrayList<Serializable> data = new ArrayList<Serializable>();
+		data.add(ret);
+		Message m = new Message(from, self, id, "result", data);
+		com.send(m);
+	}
+	
+	
+	public void queryCustomerInfo(Address from, int id, Object[] args)
+	{
+		Serializable[] results = send_all_rms(args, "queryCustomerInfo");
+		
+		String ret = "Bill for customer " + args[1].toString();
+		for (Serializable str : results) {
+			String[] tmp = ((String) str).split("\n");
+			for (int i = 1; i < tmp.length; i++) {
+				ret += "\n" + tmp[i]
+						;
+			}
+		}
+		ArrayList<Serializable> data = new ArrayList<Serializable>();
+		data.add(ret);
+		Message m = new Message(from, this.self, id, "result", data);
+		com.send(m);
+	}
+	
+	private Serializable[] send_all_rms(Object[] args, String type) 
 	{
 		ArrayList<Serializable> data = new ArrayList<Serializable>();
 		for (Object s : args) {
@@ -258,23 +291,20 @@ public class SocketRmManager extends BaseRm
 		int i = 0;
 		
 		for (Address to : new Address[] {this.flight_rm, this.room_rm, this.car_rm}) {
-			Message m = new Message(to, this.self, ids[i], "deleteCustomer", data);
+			Message m = new Message(to, this.self, ids[i], type, data);
 			com.send(m);
 			i++;
 		}
 		
-		boolean ret = true;
+		i = 0;
+		Serializable[] ret = new Serializable[3];
 		for (int uid : ids) {
 			Serializable result = get_result(uid);
-			
-			if (!((Boolean) result).booleanValue()) {
-				ret = false;
-			}
+			ret[i] = result;
+			i++;
 		}
-		data.clear();
-		data.add(ret);
-		Message m = new Message(from, self, id, "result", data);
-		com.send(m);
+		
+		return ret;
 	}
 	
 	private int get_id()
