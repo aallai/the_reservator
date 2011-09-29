@@ -13,6 +13,22 @@ import java.util.ArrayList;
 
 public class SocketRm extends  BaseRm
 {
+	public static void main(String[] args)
+	{
+		int port = 1337;
+		try {
+			port = Integer.parseInt(args[0]);
+		} catch (NumberFormatException e) {
+			System.err.println("Usage : SocketRm port");
+			System.exit(-1);
+		}
+		
+		SocketRm rm = new SocketRm(port);
+		rm.run();
+		
+		System.out.println("Server ready.");
+	}
+	
 	public SocketRm(int port)
 	{
 		super(port);
@@ -20,9 +36,10 @@ public class SocketRm extends  BaseRm
 	
 	public void received(Message m)
 	{
-		if (actions.containsKey(m.type)) {
-			Method act = actions.get(m.type);
 			
+		Method act = get_op(m.type);
+
+		if (act != null) {
 			try {
 				Serializable result = (Serializable) act.invoke(this, m.data.toArray());
 
@@ -43,5 +60,19 @@ public class SocketRm extends  BaseRm
 		} else {
 			send_error(m.from, m.id, "Requested unsupported operation: " + m.type);
 		}
+	}
+	
+
+	private Method get_op(String type)
+	{
+		Method ret = null;
+		
+		for (Method m : super.getClass().getMethods()) {
+			if (m.getName().equalsIgnoreCase(type)) {
+				ret = m;
+			}
+		}
+		
+		return ret;
 	}
 }

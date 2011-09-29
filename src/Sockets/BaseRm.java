@@ -23,7 +23,6 @@ public abstract class BaseRm
 	
 	Address self;
 	Communicator com;
-	HashMap<String, Method> actions;
 	RMHashtable m_itemHT = new RMHashtable();
 	
 	public BaseRm(int port)
@@ -35,18 +34,6 @@ public abstract class BaseRm
 		}
 		
 		this.com = new Communicator(port, this);
-		this.actions = init_actions();
-	}
-	
-	private HashMap<String, Method> init_actions() 
-	{
-		HashMap<String, Method> ret = new HashMap<String, Method>();
-		
-		Method[] methods = this.getClass().getDeclaredMethods();
-		for (Method m : methods) {
-			ret.put(m.getName(), m);
-		}
-		return ret;
 	}
 	
 	public void run() {
@@ -56,33 +43,11 @@ public abstract class BaseRm
 	/**
 	 * Where the actions happen.
 	 */
-	public void received(Message m)
-	{
-		if (actions.containsKey(m.type)) {
-
-			Method act = actions.get(m.type);
-
-			try {
-				act.invoke(this, m.data.toArray());
-
-			} catch (IllegalArgumentException e) {
-
-				send_error(m.from, m.id, "Wrong parameters for operation: " + m.type);
-
-			} catch (Exception e) {
-				e.printStackTrace();
-			} 
-			
-		} else {
-			send_error(m.from, m.id, "Requested unsupported operation: " + m.type);
-		}
-	}
+	public void received(Message m) {}
 	
 	void send_error(Address to, int id, String info)
 	{
 		ArrayList<Serializable> data = new ArrayList<Serializable>();
-		data.add(self);
-		data.add(id);
 		data.add(info);
 		Message error = new Message(to, self, id, "error", data);
 		com.send(error);

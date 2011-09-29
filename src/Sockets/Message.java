@@ -8,7 +8,7 @@ public class Message implements Serializable {
 	private static final long serialVersionUID = 1337L;
 	public Address to;
 	public Address from;
-	public int id;
+	public int id;        // unique ids for every message are important!
 	public String type;
 	public ArrayList<Serializable> data;   // an arraylist of serializable objects
 	

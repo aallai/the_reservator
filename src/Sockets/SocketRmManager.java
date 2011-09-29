@@ -1,25 +1,15 @@
 package Sockets;
 
-import java.rmi.RemoteException;
-import java.lang.Runnable;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Vector;
 import java.util.HashMap;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.io.Serializable;
-
-import ResInterface.Callback;
+import java.lang.reflect.Method;
 
 public class SocketRmManager extends BaseRm 
 {
 	private Address flight_rm;
 	private Address car_rm;
 	private Address room_rm;
-	private Communicator com;
 	private HashMap<Integer, Serializable> results;
 	
 	public static void main(String[] args) 
@@ -48,6 +38,8 @@ public class SocketRmManager extends BaseRm
 		
 		SocketRmManager manager = new SocketRmManager(port, active_rms);
 		manager.run();
+		
+		System.out.println("Middleware server ready.");
 	}
 	
 	public SocketRmManager(int port, ArrayList<Address> active_rms) 
@@ -68,12 +60,13 @@ public class SocketRmManager extends BaseRm
 		}
 		
 		if (i < rms.length) {
-			System.err.println("SocketRmManager() : Fewer than four active rms prvided.");
+			System.err.println("SocketRmManager() : Fewer than three active rms prvided.");
 			for (; i < rms.length; i++) {
 				rms[i] = active_rms.get(0);
 			}
 		}
 		
+		this.results = new HashMap<Integer, Serializable>();
 		this.flight_rm = rms[0];
 		this.car_rm = rms[1];
 		this.room_rm = rms[2];
@@ -128,29 +121,56 @@ public class SocketRmManager extends BaseRm
 	{
 		
 		// TODO : add special case of itinerary
+
+		if (valid_op(m.type)) {
 		
-		if (actions.containsKey(m.type)) {
-			Address to = resolve_rm(m.type);
+			if (m.type == "error") {
+				error( m.from, m.id, (String) m.data.get(0));
+				
+			} else if (m.type.equals("result")) {
+				result(m.id, m.data.get(0));
+				
+			} else {
+				
+				Address to = resolve_rm(m.type);
 			
-			if (to == null) {
-				System.err.println("SocketRmManager.received() : Could not find rm for request " + m.type);
-				return;
+				if (to == null) {
+					System.err.println("SocketRmManager.received() : Could not find rm for request " + m.type);
+					return;
+				}
+			
+				Message f = new Message(to, this.self, m.id, m.type, m.data);
+				com.send(f);
+			
+				// blocks here
+				Serializable result = get_result(m.id);
+			
+				f.data.clear();
+				f.data.add(result);
+				f = new Message(m.from, this.self, m.id, "result", f.data);
+				com.send(f);
 			}
 			
-			Message f = new Message(to, this.self, m.id, m.type, m.data);
-			com.send(f);
-			
-			// blocks here
-			Serializable result = get_result(m.id);
-			
-			f.data.clear();
-			f.data.add(result);
-			f = new Message(m.from, this.self, m.id, "result", f.data);
-			com.send(f);
 		} else {
 			send_error(m.from, m.id, "Requested unsupported operation: " + m.type);
 		}
+	}
+	
+	private boolean valid_op(String type)
+	{
+		for (Method m : super.getClass().getMethods()) {
+			if (m.getName().equalsIgnoreCase(type)) {
+				return true;
+			}
+		}
 		
+		for (Method m : this.getClass().getMethods()) {
+			if (m.getName().equalsIgnoreCase(type)) {
+				return true;
+			}
+		}
+		
+		return false;
 	}
 	
 	private Address resolve_rm(String type)
