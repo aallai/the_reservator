@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.io.Serializable;
 
 public class SocketRmManager extends BaseRm 
 {
@@ -11,6 +12,9 @@ public class SocketRmManager extends BaseRm
 	private Address car_rm;
 	private Address room_rm;
 	private HashMap<Integer, Serializable> results;
+	/* increment ids by 2 everytime, client and server use even or odd numbers so we have 
+	 * system wide unique ids.*/
+	private int id = -1;
 	
 	public static void main(String[] args) 
 	{
@@ -100,7 +104,9 @@ public class SocketRmManager extends BaseRm
 					continue;
 				}
 			}
-			return this.results.get(id);
+			Serializable ret =  this.results.get(id);
+			this.results.remove(id);
+			return ret;
 		}
 	}
 	
@@ -124,11 +130,17 @@ public class SocketRmManager extends BaseRm
 
 		if (valid_op(m.type)) {
 		
-			if (m.type == "error") {
+			if (m.type.equals("error"))
+			{
 				error( m.from, m.id, (String) m.data.get(0));
 				
 			} else if (m.type.equals("result")) {
 				result(m.id, m.data.get(0));
+		
+			} else if (m.type.equals("newCustomer")) {
+				newCustomer(m.from, m.id, m.data.toArray());
+			} else if (m.type.equals("deleteCustomer")) {
+				deleteCustomer(m.from, m.id, m.data.toArray());	
 				
 			} else {
 				
@@ -185,5 +197,89 @@ public class SocketRmManager extends BaseRm
 		}
 		
 		return ret;
+	}
+	
+	public void newCustomer(Address from, int id, Object[] args)
+	{
+		boolean sendbool = true;
+		
+		ArrayList<Serializable> data = new ArrayList<Serializable>();
+		for (Object s : args) {
+			data.add((Serializable) s);
+		}
+		
+		/* don't let the servers auto-choose the cid because they dont do it so well
+		 the resource manager doesn't notify of failure for this, so
+		 I optimize and send the response back right away.*/
+		if (data.size() == 1) {
+			data.add(id);
+			ArrayList<Serializable> result = new ArrayList<Serializable>();
+			result.add(id);
+			com.send(new Message(from, self, id, "result", result));
+
+			// just trying to emulate the original interface
+			sendbool = false;
+		}
+		
+		int[] ids = new int[] {get_id(), get_id(), get_id()};
+		int i = 0;
+		
+		for (Address to : new Address[] {this.flight_rm, this.room_rm, this.car_rm}) {
+			Message m = new Message(to, this.self, ids[i], "newCustomer", data);
+			com.send(m);
+			i++;
+		}
+		
+		if (sendbool) {
+			
+			boolean ret = true;
+			for (int uid : ids) {
+				Serializable result = get_result(uid);
+				
+				if (!((Boolean) result).booleanValue()) {
+					ret = false;
+				}
+			}
+			ArrayList<Serializable> r = new ArrayList<Serializable>();
+			r.add(ret);
+			Message m = new Message(from, self, id, "result", r);
+			com.send(m);
+		}
+	}
+		
+	public void deleteCustomer(Address from, int id, Object[] args) 
+	{
+		ArrayList<Serializable> data = new ArrayList<Serializable>();
+		for (Object s : args) {
+			data.add((Serializable) s);
+		}
+		
+		int[] ids = new int[] {get_id(), get_id(), get_id()};
+		int i = 0;
+		
+		for (Address to : new Address[] {this.flight_rm, this.room_rm, this.car_rm}) {
+			Message m = new Message(to, this.self, ids[i], "deleteCustomer", data);
+			com.send(m);
+			i++;
+		}
+		
+		boolean ret = true;
+		for (int uid : ids) {
+			Serializable result = get_result(uid);
+			
+			if (!((Boolean) result).booleanValue()) {
+				ret = false;
+			}
+		}
+		data.clear();
+		data.add(ret);
+		Message m = new Message(from, self, id, "result", data);
+		com.send(m);
+	}
+	
+	private int get_id()
+	{
+		this.id += 2; 
+		return id;
 	}
 }
