@@ -4,8 +4,6 @@ import java.lang.Thread;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.io.Serializable;
@@ -13,9 +11,7 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-
-import ResInterface.ResourceManager;
-
+ 
 public class SocketClient implements ResInterface.Callback {
 	static String message = "blank";
 	int id = 0;
@@ -56,7 +52,10 @@ public class SocketClient implements ResInterface.Callback {
 		{
 			public void run()
 			{
-				client.com.init();
+				if (!client.com.init()) {
+					System.err.println("Could not initialize communication. exiting");
+					System.exit(-1);
+				}
 			}
 		}.start();
 		
@@ -77,6 +76,11 @@ public class SocketClient implements ResInterface.Callback {
 		//remove heading and trailing white space
 		command=command.trim();
 		arguments=client.parse(command);
+		
+		// fixer upper
+		if (arguments.size() == 0) {
+			continue;
+		}
 		
 		//decide which of the commands this was
 		switch(client.findChoice((String)arguments.elementAt(0))){
@@ -449,7 +453,7 @@ public class SocketClient implements ResInterface.Callback {
 			int customer = client.getInt(arguments.elementAt(2));
 			flightNum = client.getInt(arguments.elementAt(3));
 
-			if ( ((Boolean) client.request("reserveFlight", customer, flightNum)).booleanValue() )
+			if ( ((Boolean) client.request("reserveFlight", Id, customer, flightNum)).booleanValue() )
 			    System.out.println("Flight Reserved");
 			else
 			    System.out.println("Flight could not be reserved.");
@@ -527,9 +531,9 @@ public class SocketClient implements ResInterface.Callback {
 		    try{
 			Id = client.getInt(arguments.elementAt(1));
 			int customer = client.getInt(arguments.elementAt(2));
-			Vector flightNumbers = new Vector();
+			Vector<Integer> flightNumbers = new Vector<Integer>();
 			for(int i=0;i<arguments.size()-6;i++)
-			    flightNumbers.addElement(arguments.elementAt(3+i));
+			    flightNumbers.addElement(client.getInt(arguments.elementAt(3+i)));
 			location = client.getString(arguments.elementAt(arguments.size()-3));
 			Car = client.getBoolean(arguments.elementAt(arguments.size()-2));
 			Room = client.getBoolean(arguments.elementAt(arguments.size()-1));

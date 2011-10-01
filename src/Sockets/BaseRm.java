@@ -37,7 +37,10 @@ public abstract class BaseRm
 	}
 	
 	public void run() {
-		com.init();
+		if (!com.init()) {
+			System.err.println("Could not initialize communication. exiting");
+			System.exit(-1);
+		}
 	}
 	
 	/**

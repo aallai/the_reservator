@@ -184,7 +184,6 @@ public class SocketRmManager extends BaseRm
 				}
 			
 				Message f = new Message(to, this.self, m.client, m.id, m.type, m.data);
-				System.out.println(f.client);
 				com.send(f);
 			
 				// blocks here
@@ -340,22 +339,20 @@ public class SocketRmManager extends BaseRm
 	public void itinerary(Address from, int id,int customer,Vector<Integer> flightNumbers,String location, boolean Car, boolean Room)
     {
 		
-		int serverid;
+		int cur_id = id;
 		ArrayList<Serializable> data = new ArrayList<Serializable>();
 		Message m;
 		Serializable result;
 		
     	for (int i : flightNumbers) {
-    		
-    		serverid = get_id();
     		data.clear();
     		data.add(id);
     		data.add(customer);
     		data.add(i);
-    		m = new Message(this.flight_rm, this.self, from, serverid, "reserveFlight", data);
+    		m = new Message(this.flight_rm, this.self, from, cur_id, "reserveFlight", data);
     		com.send(m);
     		
-    		result = get_result(this.self, serverid);
+    		result = get_result(from, cur_id);
 
     		// error occurred should propagate back
     		if (result == null) {
@@ -369,20 +366,19 @@ public class SocketRmManager extends BaseRm
     			com.send(m);
     			return;
     		}
+    		cur_id++;
     	}
     		
     	if (Car) {
-    			
-    		serverid = get_id();
     		data.clear();
     		data.add(id);
     		data.add(customer);
     		data.add(location);
     			
-    		m = new Message(car_rm, this.self, this.self, serverid, "reserveCar", data);
+    		m = new Message(car_rm, this.self, from, cur_id, "reserveCar", data);
     		com.send(m);
     			
-    		result = get_result(this.self, serverid);
+    		result = get_result(from, cur_id);
 
     		// error occurred should propagate back
     		if (result == null) {
@@ -396,19 +392,19 @@ public class SocketRmManager extends BaseRm
         		com.send(m);
         		return;
         	}
+    		cur_id++;
     	}
     		
     	if (Room) {
-    		serverid = get_id();
     		data.clear();
     		data.add(id);
     		data.add(customer);
     		data.add(location);
     		
-    		m = new Message(room_rm, this.self, this.self, serverid, "reserveRoom", data);
+    		m = new Message(room_rm, this.self, from, cur_id, "reserveRoom", data);
     		com.send(m);
     		
-    		result = get_result(this.self, serverid);
+    		result = get_result(from, cur_id);
     		
     		// error occurred should propagate back
     		if (result == null) {
