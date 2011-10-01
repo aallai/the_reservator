@@ -2,6 +2,7 @@ package Sockets;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Vector;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.io.Serializable;
@@ -11,10 +12,10 @@ public class SocketRmManager extends BaseRm
 	private Address flight_rm;
 	private Address car_rm;
 	private Address room_rm;
-	private HashMap<Integer, Serializable> results;
-	/* increment ids by 2 everytime, client and server use even or odd numbers so we have 
-	 * system wide unique ids.*/
-	private int id = -1;
+	private ArrayList<Result> results;
+	private int id = 0;
+	private 
+	final int RETRY_MAX = 5;
 	
 	public static void main(String[] args) 
 	{
@@ -70,7 +71,7 @@ public class SocketRmManager extends BaseRm
 			}
 		}
 		
-		this.results = new HashMap<Integer, Serializable>();
+		this.results = new ArrayList<Result>();
 		this.flight_rm = rms[0];
 		this.car_rm = rms[1];
 		this.room_rm = rms[2];
@@ -82,32 +83,51 @@ public class SocketRmManager extends BaseRm
 	 * @param id
 	 * @param obj
 	 */
-	public void result(int id, Serializable obj)
+	public void result(int id, Address client, Serializable obj)
 	{
 		synchronized(this.results) {
-			this.results.put(id, obj);
+			this.results.add(new Result(client, id, obj));
 			this.results.notifyAll();
 		}
 	}
 	
-	private Serializable get_result(int id)
+	private Serializable get_result(Address client, int id)
 	{
 		// TODO: add timeouts
 		
 		synchronized(this.results) {
 			
-			while (!this.results.containsKey(id)) {
+			int retries = 0;
+			Result r;
+			
+			while ((r = _get_result_(client, id)) == null && retries <= this.RETRY_MAX) {
 				try {
-					this.results.wait();
+					this.results.wait(1000L);
 					
 				} catch (InterruptedException e) {
-					continue;
 				}
+				retries++;
 			}
-			Serializable ret =  this.results.get(id);
-			this.results.remove(id);
-			return ret;
+			
+			if (r != null) {
+				Serializable ret =  r.value;
+				return ret;
+			} else {
+				return null;
+			}
 		}
+	}
+	
+	private Result _get_result_(Address client, int id)
+	{
+		Result ret = null;
+		for (Result r : this.results) {
+			if (r.matches(client, id)) {
+				ret = r;
+			}
+		}
+		this.results.remove(ret);
+		return ret;
 	}
 	
 	/**
@@ -132,18 +152,28 @@ public class SocketRmManager extends BaseRm
 		
 			if (m.type.equals("error"))
 			{
-				error( m.from, m.id, (String) m.data.get(0));
-				
+				if (m.client.equals(this.self)) {
+					error( m.from, m.id, (String) m.data.get(0));
+				} else {
+					send_error(m.client, m.client, m.id, (String) m.data.get(0));
+				}
 			} else if (m.type.equals("result")) {
-				result(m.id, m.data.get(0));
-		
+				result(m.id, m.client, m.data.get(0));
 			} else if (m.type.equals("newCustomer")) {
 				newCustomer(m.from, m.id, m.data.toArray());
 			} else if (m.type.equals("deleteCustomer")) {
 				deleteCustomer(m.from, m.id, m.data.toArray());	
 			} else if (m.type.equals("queryCustomerInfo"))	{
 				queryCustomerInfo(m.from, m.id, m.data.toArray());
-				
+			} else if (m.type.equals("itinerary")) {
+				try {
+					itinerary(m.from, m.id, (Integer) m.data.get(1), 
+							(Vector<Integer>) m.data.get(2), (String) m.data.get(3), 
+								(Boolean) m.data.get(4), (Boolean) m.data.get(5)); 
+				} catch (ClassCastException e) {
+					e.printStackTrace();
+					send_error(m.from, m.client, m.id, "Wrong parameters for operation: " + m.type);
+				}
 			} else {
 				
 				Address to = resolve_rm(m.type);
@@ -153,20 +183,26 @@ public class SocketRmManager extends BaseRm
 					return;
 				}
 			
-				Message f = new Message(to, this.self, m.id, m.type, m.data);
+				Message f = new Message(to, this.self, m.client, m.id, m.type, m.data);
+				System.out.println(f.client);
 				com.send(f);
 			
 				// blocks here
-				Serializable result = get_result(m.id);
+				Serializable result = get_result(m.client, m.id);
+				
+				// assume error is coming back
+				if (result == null) {
+					return;
+				}
 			
 				f.data.clear();
 				f.data.add(result);
-				f = new Message(m.from, this.self, m.id, "result", f.data);
+				f = new Message(m.from, this.self, m.client, m.id, "result", f.data);
 				com.send(f);
 			}
 			
 		} else {
-			send_error(m.from, m.id, "Requested unsupported operation: " + m.type);
+			send_error(m.from, m.client, m.id, "Requested unsupported operation: " + m.type);
 		}
 	}
 	
@@ -219,13 +255,18 @@ public class SocketRmManager extends BaseRm
 			
 			ArrayList<Serializable> result = new ArrayList<Serializable>();
 			result.add(id);
-			com.send(new Message(from, self, id, "result", result));
+			com.send(new Message(from, self, from, id, "result", result));
 
 			// just trying to emulate the original interface
 			sendbool = false;
 		}
 		
 		Serializable[] results = send_all_rms(data.toArray(), "newCustomer");
+		
+		// error occurred should propagate back
+		if (results == null) {
+			return;
+		}
 		
 		if (sendbool) {
 			
@@ -239,7 +280,7 @@ public class SocketRmManager extends BaseRm
 			
 			ArrayList<Serializable> r = new ArrayList<Serializable>();
 			r.add(ret);
-			Message m = new Message(from, self, id, "result", r);
+			Message m = new Message(from, self, from, id, "result", r);
 			com.send(m);
 		}
 	}
@@ -248,6 +289,11 @@ public class SocketRmManager extends BaseRm
 	{
 	
 		Serializable[] results = send_all_rms(args, "deleteCustomer");
+		
+		if (results == null) {
+			return;
+		}
+		
 		boolean ret = true;
 		
 		for (Serializable res : results) {
@@ -257,7 +303,7 @@ public class SocketRmManager extends BaseRm
 		}
 		ArrayList<Serializable> data = new ArrayList<Serializable>();
 		data.add(ret);
-		Message m = new Message(from, self, id, "result", data);
+		Message m = new Message(from, self, from, id, "result", data);
 		com.send(m);
 	}
 	
@@ -266,19 +312,126 @@ public class SocketRmManager extends BaseRm
 	{
 		Serializable[] results = send_all_rms(args, "queryCustomerInfo");
 		
+		// assume error gets propagated back
+		if (results == null) {
+			return;
+		}
+		
 		String ret = "Bill for customer " + args[1].toString();
 		for (Serializable str : results) {
+			
+			// call may have failed
+			if (((String) str).equals("")) {
+				
+			}
+			
 			String[] tmp = ((String) str).split("\n");
 			for (int i = 1; i < tmp.length; i++) {
-				ret += "\n" + tmp[i]
-						;
+				ret += "\n" + tmp[i];
 			}
 		}
 		ArrayList<Serializable> data = new ArrayList<Serializable>();
 		data.add(ret);
-		Message m = new Message(from, this.self, id, "result", data);
+		Message m = new Message(from, this.self, from, id, "result", data);
 		com.send(m);
 	}
+	
+	
+	public void itinerary(Address from, int id,int customer,Vector<Integer> flightNumbers,String location, boolean Car, boolean Room)
+    {
+		
+		int serverid;
+		ArrayList<Serializable> data = new ArrayList<Serializable>();
+		Message m;
+		Serializable result;
+		
+    	for (int i : flightNumbers) {
+    		
+    		serverid = get_id();
+    		data.clear();
+    		data.add(id);
+    		data.add(customer);
+    		data.add(i);
+    		m = new Message(this.flight_rm, this.self, from, serverid, "reserveFlight", data);
+    		com.send(m);
+    		
+    		result = get_result(this.self, serverid);
+
+    		// error occurred should propagate back
+    		if (result == null) {
+    			return;
+    		}
+    		
+    		if (!((Boolean) result).booleanValue()) {
+    			data.clear();
+    			data.add(false);
+    			m = new Message(from, this.self, from, id, "result", data);
+    			com.send(m);
+    			return;
+    		}
+    	}
+    		
+    	if (Car) {
+    			
+    		serverid = get_id();
+    		data.clear();
+    		data.add(id);
+    		data.add(customer);
+    		data.add(location);
+    			
+    		m = new Message(car_rm, this.self, this.self, serverid, "reserveCar", data);
+    		com.send(m);
+    			
+    		result = get_result(this.self, serverid);
+
+    		// error occurred should propagate back
+    		if (result == null) {
+    			return;
+    		}
+    			
+    		if (!((Boolean) result).booleanValue()) {
+        		data.clear();
+        		data.add(false);
+        		m = new Message(from, this.self, from, id, "result", data);
+        		com.send(m);
+        		return;
+        	}
+    	}
+    		
+    	if (Room) {
+    		serverid = get_id();
+    		data.clear();
+    		data.add(id);
+    		data.add(customer);
+    		data.add(location);
+    		
+    		m = new Message(room_rm, this.self, this.self, serverid, "reserveRoom", data);
+    		com.send(m);
+    		
+    		result = get_result(this.self, serverid);
+    		
+    		// error occurred should propagate back
+    		if (result == null) {
+    			return;
+    		}
+    		
+    		if (!((Boolean) result).booleanValue()) {
+       			data.clear();
+       			data.add(false);
+       			m = new Message(from, this.self, from, id, "result", data);
+       			com.send(m);
+       			return;
+       		}	
+   		}
+    
+    		
+    	data.clear();
+    	data.add(true);
+    	m = new Message(from, this.self, from, id, "result", data);
+    	com.send(m);
+    }
+    
+	
 	
 	private Serializable[] send_all_rms(Object[] args, String type) 
 	{
@@ -291,7 +444,7 @@ public class SocketRmManager extends BaseRm
 		int i = 0;
 		
 		for (Address to : new Address[] {this.flight_rm, this.room_rm, this.car_rm}) {
-			Message m = new Message(to, this.self, ids[i], type, data);
+			Message m = new Message(to, this.self, this.self, ids[i], type, data);
 			com.send(m);
 			i++;
 		}
@@ -299,7 +452,10 @@ public class SocketRmManager extends BaseRm
 		i = 0;
 		Serializable[] ret = new Serializable[3];
 		for (int uid : ids) {
-			Serializable result = get_result(uid);
+			Serializable result = get_result(this.self, uid);
+			if (result == null) {
+				return null;
+			}
 			ret[i] = result;
 			i++;
 		}
@@ -308,8 +464,7 @@ public class SocketRmManager extends BaseRm
 	}
 	
 	private int get_id()
-	{
-		this.id += 2; 
-		return id;
+	{ 
+		return id++;
 	}
 }

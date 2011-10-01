@@ -16,4 +16,23 @@ public class Address implements Serializable {
 	public String toString() {
 		return "( " + host + ", " + String.valueOf(port) + " )";  
 	}
+
+	public boolean equals(Address a) 
+	{
+		if (a == null) {
+			return false;
+		}
+		
+		if (this == a) {
+			return true;
+		}
+		
+		if (this.host.equals(a.host) && this.port == a.port) {
+			return true;
+		}
+		
+		return false;
+	}
+	
+
 }

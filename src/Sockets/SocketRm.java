@@ -45,11 +45,11 @@ public class SocketRm extends  BaseRm
 
 				ArrayList<Serializable> data = new ArrayList<Serializable>();
 				data.add(result);
-				Message r =  new Message(m.from, self, m.id, "result", data);
+				Message r =  new Message(m.from, self, m.client, m.id, "result", data);
 				com.send(r);
 				
 			} catch (IllegalArgumentException e) {
-				send_error(m.from, m.id, "Wrong parameters for operation: " + m.type);
+				send_error(m.from, m.client, m.id, "Wrong parameters for operation: " + m.type);
 			} catch (InvocationTargetException e) {
 				System.err.println("SocketRm.received() : superclass method " + m.type + " threw ->");
 				System.err.println();
@@ -58,7 +58,7 @@ public class SocketRm extends  BaseRm
 				e.printStackTrace();
 			}
 		} else {
-			send_error(m.from, m.id, "Requested unsupported operation: " + m.type);
+			send_error(m.from, m.client, m.id, "Requested unsupported operation: " + m.type);
 		}
 	}
 	

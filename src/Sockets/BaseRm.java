@@ -45,11 +45,11 @@ public abstract class BaseRm
 	 */
 	public void received(Message m) {}
 	
-	void send_error(Address to, int id, String info)
+	void send_error(Address to, Address client, int id, String info)
 	{
 		ArrayList<Serializable> data = new ArrayList<Serializable>();
 		data.add(info);
-		Message error = new Message(to, self, id, "error", data);
+		Message error = new Message(to, self, client, id, "error", data);
 		com.send(error);
 	}
 
