@@ -21,58 +21,13 @@ public class ResourceManagerImpl
 	protected RMHashtable m_itemHT = new RMHashtable();
 
 
-	public static void main(String args[]) {
-        // Figure out where server is running
-        String server = "localhost";
-
-         if (args.length == 1) {
-             server = server + ":" + args[0];
-         } else if (args.length != 0 &&  args.length != 1) {
-             System.err.println ("Wrong usage");
-             System.out.println("Usage: java ResImpl.ResourceManagerImpl [port]");
-             System.exit(1);
-         }
-		 
-		 try 
-		 {
-			// create a new Server object
-			ResourceManagerImpl obj = new ResourceManagerImpl();
-			// dynamically generate the stub (client proxy)
-			ResourceManager rm = (ResourceManager) UnicastRemoteObject.exportObject(obj, 0);
-
-			// Bind the remote object's stub in the registry
-			Registry registry = LocateRegistry.getRegistry();
-			registry.rebind("aallai2_rm", rm);
-
-			System.err.println("Server ready");
-		} 
-		catch (Exception e) 
-		{
-			System.err.println("Server exception: " + e.toString());
-			e.printStackTrace();
-		}
-
-         // Create and install a security manager
- //        if (System.getSecurityManager() == null) {
- //          System.setSecurityManager(new RMISecurityManager());
- //        }
- //        try {
- //               ResourceManagerImpl obj = new ResourceManagerImpl();
- //               Naming.rebind("rmi://" + server + "/RM", obj);
- //               System.out.println("RM bound");
- //        } 
- //        catch (Exception e) {
- //               System.out.println("RM not bound:" + e);
- //        }
-    }
-
     
     public ResourceManagerImpl() throws RemoteException {
     }
 
 
 	// Reads a data item
-	private RMItem readData( int id, String key )
+	protected RMItem readData( int id, String key )
 	{
 		synchronized(m_itemHT){
 			return (RMItem) m_itemHT.get(key);
@@ -80,7 +35,7 @@ public class ResourceManagerImpl
 	}
 
 	// Writes a data item
-	private void writeData( int id, String key, RMItem value )
+	protected void writeData( int id, String key, RMItem value )
 	{
 		synchronized(m_itemHT){
 			m_itemHT.put(key, value);

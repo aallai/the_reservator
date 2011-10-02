@@ -42,9 +42,9 @@ public class client
 		try 
 		{
 			// get a reference to the rmiregistry
-			Registry registry = LocateRegistry.getRegistry(server);
+			Registry registry = LocateRegistry.getRegistry();
 			// get the proxy and the remote reference by rmiregistry lookup
-			rm = (ResourceManager) registry.lookup("middle_rm");
+			rm = (ResourceManager) registry.lookup("reservator_middleware_rm");
 			if(rm!=null)
 			{
 				System.out.println("Successful");
@@ -60,6 +60,8 @@ public class client
 		{	
 			System.err.println("Client exception: " + e.toString());
 			e.printStackTrace();
+			
+			System.exit(1);
 		}
     
 		
@@ -88,8 +90,14 @@ public class client
 		    System.exit(1);
 		}
 		//remove heading and trailing white space
+		
 		command=command.trim();
 		arguments=obj.parse(command);
+		
+		// fixer upper
+		if (arguments.size() == 0) {
+			continue;
+		}
 		
 		//decide which of the commands this was
 		switch(obj.findChoice((String)arguments.elementAt(0))){
