@@ -823,7 +823,7 @@ public class SocketClient implements ResInterface.Callback {
 		System.out.println("Purpose:");
 		System.out.println("\tReserve a given number of cars for a customer at a particular location.");
 		System.out.println("\nUsage:");
-		System.out.println("\treservecar,<id>,<customerid>,<location>,<nummberofCars>");
+		System.out.println("\treservecar,<id>,<customerid>,<location>");
 		break;
 		
 	    case 19:  //reserve a room
@@ -831,7 +831,7 @@ public class SocketClient implements ResInterface.Callback {
 		System.out.println("Purpose:");
 		System.out.println("\tReserve a given number of rooms for a customer at a particular location.");
 		System.out.println("\nUsage:");
-		System.out.println("\treserveroom,<id>,<customerid>,<location>,<nummberofRooms>");
+		System.out.println("\treserveroom,<id>,<customerid>,<location>");
 		break;
 		
 	    case 20:  //reserve an Itinerary
@@ -839,7 +839,7 @@ public class SocketClient implements ResInterface.Callback {
 		System.out.println("Purpose:");
 		System.out.println("\tBook one or more flights.Also book zero or more cars/rooms at a location.");
 		System.out.println("\nUsage:");
-		System.out.println("\titinerary,<id>,<customerid>,<flightnumber1>....<flightnumberN>,<LocationToBookCarsOrRooms>,<NumberOfCars>,<NumberOfRoom>");
+		System.out.println("\titinerary,<id>,<customerid>,<flightnumber1>....<flightnumberN>,<LocationToBookCarsOrRooms>,<BookACar?>,<BookARoom?>");
 		break;
 		
 
