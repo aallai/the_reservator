@@ -1,6 +1,13 @@
 #!/bin/bash
 
+if [ -n "$1" ]  #  If command-line argument present,
+then            #  then set start-string to it.
+  themsg="$1"
+else
+  themsg="default commit"
+fi
+
 git add *
-git commit -m $1
+git commit -m "$themsg"
 git push origin master
 

@@ -16,8 +16,8 @@ public class ServerRMImpl extends ResourceManagerImpl {
         
         
          if (args.length == 1) {
-             server += "localhost" + ":" + args[0];
-         } else if (args.length != 0 &&  args.length != 3) {
+             server += "localhost:" + args[0];
+         } else if (args.length != 3) {
              System.err.println ("Wrong usage");
              System.out.println("Usage: java ResImpl.ServerRMImpl [port] [hostname] [rmName]");
              System.exit(1);
@@ -26,8 +26,6 @@ public class ServerRMImpl extends ResourceManagerImpl {
          rmName = args[2];
          System.out.println("Usage: java ResImpl.ServerRMImpl " + args[0] + " " + args[1] + " " + args[2]);
 
-         
-         
 		 try 
 		 {
 			 
@@ -51,10 +49,6 @@ public class ServerRMImpl extends ResourceManagerImpl {
 			registry.rebind(rmName, rm);
 			
 			System.out.println("Binded Stub to Registry");
-
-			
-			
-
 			System.err.println("Server ready");
 		} catch(AccessException e) {
 			System.err.println("Access Remote Server exception: " + e.toString());
