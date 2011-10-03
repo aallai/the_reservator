@@ -129,7 +129,7 @@ public interface ResourceManager extends Remote
 
 
     /* reserve an itinerary */
-    public boolean itinerary(int id,int customer,Vector flightNumbers,String location, boolean Car, boolean Room)
+    public boolean itinerary(int id,int customer,Vector<Integer> flightNumbers,String location, boolean Car, boolean Room)
 	throws RemoteException; 
     			
 }

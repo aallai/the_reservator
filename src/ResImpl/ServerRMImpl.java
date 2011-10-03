@@ -9,11 +9,12 @@ import java.rmi.server.UnicastRemoteObject;
 import ResInterface.ResourceManager;
 
 public class ServerRMImpl extends ResourceManagerImpl {
+	protected String name;
+	
 	public static void main(String args[]) {
         // Figure out where server is running
         String server = "";
         String rmName = "";
-        
         
          if (args.length == 1) {
              server += "localhost:" + args[0];
@@ -28,14 +29,13 @@ public class ServerRMImpl extends ResourceManagerImpl {
 
 		 try 
 		 {
-			 
 			//Get registry
 			Registry registry = LocateRegistry.getRegistry();
 			 
 			System.out.println("Located Registry");
 			
 			// create a new Server object
-			ResourceManager obj = new ServerRMImpl();
+			ResourceManager obj = new ServerRMImpl(rmName);
 			
 			System.out.println("Created Stub");
 
@@ -43,7 +43,6 @@ public class ServerRMImpl extends ResourceManagerImpl {
 			ResourceManager rm = (ResourceManager) UnicastRemoteObject.exportObject(obj, 0);
 			
 			System.out.println("Created Resource Manager");
-
 			
 			// Bind the remote object's stub in the registry
 			registry.rebind(rmName, rm);
@@ -66,23 +65,11 @@ public class ServerRMImpl extends ResourceManagerImpl {
 			System.exit(1);
 
 		}
-
-         // Create and install a security manager
- //        if (System.getSecurityManager() == null) {
- //          System.setSecurityManager(new RMISecurityManager());
- //        }
- //        try {
- //               ResourceManagerImpl obj = new ResourceManagerImpl();
- //               Naming.rebind("rmi://" + server + "/RM", obj);
- //               System.out.println("RM bound");
- //        } 
- //        catch (Exception e) {
- //               System.out.println("RM not bound:" + e);
- //        }
     }
 
     
-    public ServerRMImpl() throws RemoteException {
+    public ServerRMImpl(String rmName) throws RemoteException {
     	super();
+    	name = rmName;
     }
 }

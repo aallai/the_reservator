@@ -519,16 +519,16 @@ public class client
 		    System.out.println("Reserving an Itinerary using id:"+arguments.elementAt(1));
 		    System.out.println("Customer id:"+arguments.elementAt(2));
 		    for(int i=0;i<arguments.size()-6;i++)
-			System.out.println("Flight number"+arguments.elementAt(3+i));
+			System.out.println("Flight number: "+arguments.elementAt(3+i));
 		    System.out.println("Location for Car/Room booking:"+arguments.elementAt(arguments.size()-3));
 		    System.out.println("Car to book?:"+arguments.elementAt(arguments.size()-2));
 		    System.out.println("Room to book?:"+arguments.elementAt(arguments.size()-1));
 		    try{
 			Id = obj.getInt(arguments.elementAt(1));
 			int customer = obj.getInt(arguments.elementAt(2));
-			Vector flightNumbers = new Vector();
+			Vector<Integer> flightNumbers = new Vector<Integer>();
 			for(int i=0;i<arguments.size()-6;i++)
-			    flightNumbers.addElement(arguments.elementAt(3+i));
+			    flightNumbers.addElement(obj.getInt(arguments.elementAt(3+i)));
 			location = obj.getString(arguments.elementAt(arguments.size()-3));
 			Car = obj.getBoolean(arguments.elementAt(arguments.size()-2));
 			Room = obj.getBoolean(arguments.elementAt(arguments.size()-1));

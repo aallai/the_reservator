@@ -19,12 +19,9 @@ public class ResourceManagerImpl
 	implements ResourceManager {
 	
 	protected RMHashtable m_itemHT = new RMHashtable();
-
-
     
     public ResourceManagerImpl() throws RemoteException {
     }
-
 
 	// Reads a data item
 	protected RMItem readData( int id, String key )
@@ -160,8 +157,6 @@ public class ResourceManagerImpl
 	{
 		return deleteItem(id, Flight.getKey(flightNum));
 	}
-
-
 
 	// Create a new room location or add rooms to an existing location
 	//  NOTE: if price <= 0 and the room location already exists, it maintains its current price
@@ -432,7 +427,7 @@ public class ResourceManagerImpl
 	}
 	
 	/* reserve an itinerary */
-    public boolean itinerary(int id,int customer,Vector flightNumbers,String location,boolean Car,boolean Room)
+    public boolean itinerary(int id,int customer,Vector<Integer> flightNumbers,String location,boolean Car,boolean Room)
 	throws RemoteException {
     	return false;
     }
