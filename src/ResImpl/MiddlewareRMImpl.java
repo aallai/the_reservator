@@ -65,8 +65,8 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 
 		try 
 		{
-			//No arguments means it looks for registry in localhost at port 1099
 			Registry registry = LocateRegistry.getRegistry(server, port);
+
 
 			//Get resource managers from rmiregistry
 			for (int i = 3; i < args.length; i++) {				
@@ -485,12 +485,21 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	public boolean itinerary(int id,int customer,Vector<Integer> flightNumbers,String location,boolean Car,boolean Room)
 			throws RemoteException {    	
 		String traceStr = "MiddlewareRm("+hostName+":"+portNumber+")::itinerary(" + id + ", " + customer + ", < ";
+
 		for(int i : flightNumbers) {
 			traceStr += "("+ Integer.toString(i) + "), ";
 		}
 		traceStr += ">, " + location + ", " + Car + ", " + Room + ") called";
 		Trace.info(traceStr);
 
+		for(int i : flightNumbers) {
+			synchronized(flightsRM) {
+				int seats = flightsRM.queryFlight(id, i);
+				if(seats == 0) {
+					return false;
+				}
+			}
+		}
 
 		for (int i : flightNumbers) {
 			synchronized(flightsRM) {

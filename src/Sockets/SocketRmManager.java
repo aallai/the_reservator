@@ -344,6 +344,28 @@ public class SocketRmManager extends BaseRm
 		Message m;
 		Serializable result;
 		
+		// check to see if all flights exist
+		for (int i : flightNumbers) {
+			data.clear();
+			data.add(id);
+			data.add(i);
+			
+			m = new Message(this.flight_rm, this.self, from, cur_id, "queryFlight", data);
+			com.send(m);
+			
+			result = get_result(from, cur_id);
+			
+			if ( ((Integer) result) == 0) {
+    			data.clear();
+    			data.add(false);
+    			m = new Message(from, this.self, from, id, "result", data);
+    			com.send(m);
+    			return;
+    		}
+			
+			cur_id++;
+		}
+		
     	for (int i : flightNumbers) {
     		data.clear();
     		data.add(id);
