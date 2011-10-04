@@ -15,6 +15,9 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	protected ResourceManager carsRM;
 	protected ResourceManager hotelsRM;
 
+	protected int portNumber;
+	protected String hostName;
+	
 	public MiddlewareRMImpl(ResourceManager flights, ResourceManager cars, ResourceManager hotels) throws RemoteException {
 		super();
 
@@ -22,17 +25,24 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 		carsRM = cars;
 		hotelsRM = hotels;
 	}
+	
+	public void setPort(int port) {
+		portNumber = port;
+	}
+	
+	public void setHost(String host) {
+		hostName = host;
+	}
 
 	public static void main(String args[]) {
 		// Figure out where server is running
 		int port = -1;
 		String server = "";
 		String rmName = "";
-		ArrayList<String> rmArray = new ArrayList<String>();
 		ArrayList<ResourceManager> serverRMImplArray = new ArrayList<ResourceManager>();
 
 		if (args.length == 1) {
-			server = "localhost" + ":" + args[0];
+			server = "localhost";
 		} else if (args.length < 6) {
 			System.err.println ("Wrong usage");
 			System.out.println("Usage: java ResImpl.ResourceManagerImpl [port] [hostname] [rmname] [...] [...] [...]\n" + 
@@ -44,33 +54,50 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 		port = Integer.parseInt(args[0]);
 		server = args[1];
 		rmName = args[2];
+		
+		//error checking in server:port:rmname arguments
 		for (int i = 3; i < args.length; i++) {
-			rmArray.add(args[i]);
+			if(args[i].split(":").length != 3) {
+				System.err.println("For each rm = [...], rm must be in the format of [rmhost:port:rmname].");
+				return;
+			}
 		}
 
 		try 
 		{
 			//No arguments means it looks for registry in localhost at port 1099
-			Registry registry = LocateRegistry.getRegistry();
+			Registry registry = LocateRegistry.getRegistry(server, port);
 
 			//Get resource managers from rmiregistry
-			for (int i = 3; i < args.length; i++) {
-				// get the proxy and the remote reference by rmiregistry lookup
-				ResourceManager rm = (ResourceManager) registry.lookup(args[i]);
+			for (int i = 3; i < args.length; i++) {				
+			    String elements[] = args[i].split(":");
+			    
+			    String serveri = elements[0];
+			    int porti = Integer.parseInt(elements[1]);
+			    String rmnamei = elements[2];
+			    
+				Registry registryi = LocateRegistry.getRegistry(serveri, porti);
+
+				// get the proxy and the remote reference by rmiregistry lookup, we assume rms are on port 1099
+				ResourceManager rm = (ResourceManager) registryi.lookup(rmnamei);
 				if(rm!=null)
 				{					
 					serverRMImplArray.add(rm);
-					System.out.println("Connected to RM: " + rmArray.get(i-3));
+					System.out.println("Connected to RM: " + args[i]);
 				}
 				else
 				{
-					System.err.println("Unsuccessful.  Could not connect to RM: " + rmArray.get(i));
+					System.err.println("Unsuccessful.  Could not connect to RM: " + args[i]);
 					System.exit(1);
 				}
 			}
 
 			// create a new Server object
 			ResourceManager obj = new MiddlewareRMImpl(serverRMImplArray.get(0), serverRMImplArray.get(1), serverRMImplArray.get(2));
+
+			((MiddlewareRMImpl)obj).setPort(port);
+			((MiddlewareRMImpl)obj).setHost(server);
+
 			// dynamically generate the stub (client proxy)
 			ResourceManager rm = (ResourceManager) UnicastRemoteObject.exportObject(obj, 0);
 
@@ -99,20 +126,20 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	// deletes the entire item
 	protected boolean deleteItem(int id, String key)
 	{
-		Trace.info("MiddlewareRM::deleteItem(" + id + ", " + key + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteItem(" + id + ", " + key + ") called" );
 		ReservableItem curObj = (ReservableItem) readData( id, key );
 		// Check if there is such an item in the storage
 		if( curObj == null ) {
-			Trace.warn("MiddlewareRM::deleteItem(" + id + ", " + key + ") failed--item doesn't exist" );
+			Trace.warn("MiddlewareRm("+hostName+":"+portNumber+")::deleteItem(" + id + ", " + key + ") failed--item doesn't exist" );
 			return false;
 		} else {
 			if(curObj.getReserved()==0){
 				removeData(id, curObj.getKey());
-				Trace.info("MiddlewareRM::deleteItem(" + id + ", " + key + ") item deleted" );
+				Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteItem(" + id + ", " + key + ") item deleted" );
 				return true;
 			}
 			else{
-				Trace.info("MiddlewareRM::deleteItem(" + id + ", " + key + ") item can't be deleted because some customers reserved it" );
+				Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteItem(" + id + ", " + key + ") item can't be deleted because some customers reserved it" );
 				return false;
 			}
 		}
@@ -137,7 +164,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	//  NOTE: if flightPrice <= 0 and the flight already exists, it maintains its current price
 	public boolean addFlight(int id, int flightNum, int flightSeats, int flightPrice)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::addFlight(" + id + ", " + flightNum + ", " + flightSeats + ", $" + flightPrice + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::addFlight(" + id + ", " + flightNum + ", " + flightSeats + ", $" + flightPrice + ") called" );
 
 		boolean result = false;
 		synchronized(flightsRM) {
@@ -149,7 +176,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 
 	public boolean deleteFlight(int id, int flightNum)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::deleteFlight(" + id + ", " + flightNum + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteFlight(" + id + ", " + flightNum + ") called" );
 
 		boolean result = false;
 		synchronized(flightsRM) {
@@ -163,7 +190,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	//  NOTE: if price <= 0 and the room location already exists, it maintains its current price
 	public boolean addRooms(int id, String location, int count, int price)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::addRooms(" + id + ", " + location + ", " + count + ", $" + price + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::addRooms(" + id + ", " + location + ", " + count + ", $" + price + ") called" );
 
 		boolean success;
 		synchronized(hotelsRM) {
@@ -176,7 +203,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	// Delete rooms from a location
 	public boolean deleteRooms(int id, String location)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::deleteRooms(" + id + ", " + location + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteRooms(" + id + ", " + location + ") called" );
 
 		boolean success;
 		synchronized(hotelsRM) {
@@ -190,7 +217,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	//  NOTE: if price <= 0 and the location already exists, it maintains its current price
 	public boolean addCars(int id, String location, int count, int price)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::addCars(" + id + ", " + location + ", " + count + ", $" + price + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::addCars(" + id + ", " + location + ", " + count + ", $" + price + ") called" );
 
 		boolean success;
 		synchronized(carsRM) {
@@ -203,7 +230,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	// Delete cars from a location
 	public boolean deleteCars(int id, String location)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::deleteCars(" + id + ", " + location + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteCars(" + id + ", " + location + ") called" );
 
 		boolean success;
 		synchronized(carsRM) {
@@ -216,7 +243,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	// Returns the number of empty seats on this flight
 	public int queryFlight(int id, int flightNum)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::queryFlight(" + id + ", " + flightNum + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::queryFlight(" + id + ", " + flightNum + ") called" );
 
 		int numberOfEmptySeats;
 		synchronized(flightsRM) {
@@ -242,7 +269,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	// Returns price of this flight
 	public int queryFlightPrice(int id, int flightNum )
 			throws RemoteException {
-		Trace.info("MiddlewareRM::queryFlightPrice(" + id + ", " + flightNum + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::queryFlightPrice(" + id + ", " + flightNum + ") called" );
 
 		int flightPrice;
 		synchronized(flightsRM) {
@@ -255,7 +282,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	// Returns the number of rooms available at a location
 	public int queryRooms(int id, String location)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::queryRooms(" + id + ", " + location + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::queryRooms(" + id + ", " + location + ") called" );
 
 		int numOfRoomsAvailable;		
 		synchronized(hotelsRM) {
@@ -268,7 +295,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	// Returns room price at this location
 	public int queryRoomsPrice(int id, String location)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::queryRoomsPrice(" + id + ", " + location + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::queryRoomsPrice(" + id + ", " + location + ") called" );
 
 		int price;		
 		synchronized(hotelsRM) {
@@ -281,7 +308,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	// Returns the number of cars available at a location
 	public int queryCars(int id, String location)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::queryCars(" + id + ", " + location + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::queryCars(" + id + ", " + location + ") called" );
 
 		int numOfCarsAvailable;		
 		synchronized(carsRM) {
@@ -294,7 +321,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	// Returns price of cars at this location
 	public int queryCarsPrice(int id, String location)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::queryCarsPrice(" + id + ", " + location + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::queryCarsPrice(" + id + ", " + location + ") called" );
 
 		int price;		
 		synchronized(carsRM) {
@@ -315,7 +342,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	// return a bill
 	public String queryCustomerInfo(int id, int customerID)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::queryCustomerInfo(" + id + ", " + customerID + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::queryCustomerInfo(" + id + ", " + customerID + ") called" );
 
 		String theBill = "";
 		String bills[] = new String[3];
@@ -333,7 +360,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 		for (int i = 0; i < 3; i++) {
 			// call may have failed
 			if (((String) bills[i]).equals("")) {
-				Trace.warn("MiddlewareRM::queryCustomerInfo(" + id + ", " + customerID + ") failed--customer doesn't exist" );
+				Trace.warn("MiddlewareRm("+hostName+":"+portNumber+")::queryCustomerInfo(" + id + ", " + customerID + ") failed--customer doesn't exist" );
 				return "";
 			}
 
@@ -351,7 +378,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	// new customer just returns a unique customer identifier
 	public int newCustomer(int id)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::newCustomer(" + id + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::newCustomer(" + id + ") called" );
 		// Generate a globally unique ID for the new customer
 		int cid = Integer.parseInt( String.valueOf(id) +
 				String.valueOf(Calendar.getInstance().get(Calendar.MILLISECOND)) +
@@ -367,7 +394,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 			carsRM.newCustomer(id, cid);
 		}
 
-		Trace.info("MiddlewareRM::newCustomer(" + cid + ") returns ID=" + cid );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::newCustomer(" + cid + ") returns ID=" + cid );
 		return cid;
 	}
 
@@ -421,7 +448,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	// Adds car reservation to this customer. 
 	public boolean reserveCar(int id, int customerID, String location)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::reserveCar(" + id + ", " + customerID + ", " + location + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::reserveCar(" + id + ", " + customerID + ", " + location + ") called" );
 
 		boolean success;
 		synchronized(carsRM) {
@@ -433,7 +460,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	// Adds room reservation to this customer. 
 	public boolean reserveRoom(int id, int customerID, String location)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::reserveRoom(" + id + ", " + customerID + ", " + location + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::reserveRoom(" + id + ", " + customerID + ", " + location + ") called" );
 
 		boolean success;
 		synchronized(hotelsRM) {
@@ -445,7 +472,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	// Adds flight reservation to this customer.  
 	public boolean reserveFlight(int id, int customerID, int flightNum)
 			throws RemoteException {
-		Trace.info("MiddlewareRM::reserveFlight(" + id + ", " + customerID + ", " + flightNum + ") called" );
+		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::reserveFlight(" + id + ", " + customerID + ", " + flightNum + ") called" );
 
 		boolean success;
 		synchronized(flightsRM) {
@@ -457,7 +484,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	/* reserve an itinerary */
 	public boolean itinerary(int id,int customer,Vector<Integer> flightNumbers,String location,boolean Car,boolean Room)
 			throws RemoteException {    	
-		String traceStr = "MiddlewareRM::itinerary(" + id + ", " + customer + ", < ";
+		String traceStr = "MiddlewareRm("+hostName+":"+portNumber+")::itinerary(" + id + ", " + customer + ", < ";
 		for(int i : flightNumbers) {
 			traceStr += "("+ Integer.toString(i) + "), ";
 		}
