@@ -902,6 +902,7 @@ public class SocketClient implements ResInterface.Callback {
     	} else if (m.type.equals("result")) {
     		result(m.id, m.data.get(0));
     	} else {
+    		System.err.println(m.from.toString());
     		System.err.println("SocketClient() : Received unsupported message of type " + m.type);
     	}
     }

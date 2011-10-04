@@ -51,6 +51,9 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 		try 
 		{
 			//No arguments means it looks for registry in localhost at port 1099
+			/**
+			 * this assumes the rms are all running on this machine. they can run anywhere
+			 */
 			Registry registry = LocateRegistry.getRegistry();
 
 			//Get resource managers from rmiregistry
