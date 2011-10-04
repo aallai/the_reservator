@@ -28,26 +28,25 @@ public class client
 	    int numRooms;
 	    int numCars;
 	    String location;
+	    String server = "";
+	    String rm_name = "";
 
-
-	    int port = 1099;
-	    String server = "localhost";
 	    if (args.length == 1) {
 			server = args[0]; 
 			
 		    String elements[] = server.split(":");
 		    
 		    if (elements.length != 2) {
-		    	System.err.println("[rmihost] must be in the format [server:port]");
+		    	System.err.println("[rmihost] must be in the format [server:rm_name]");
 		    }
 		    
 		    server = elements[0];
-		    port = Integer.parseInt(elements[1]);
+		    rm_name = elements[1];
 
 	    }
-	    else if (args.length != 0 &&  args.length != 1) 
+	    else if (args.length != 1) 
 		{
-			System.out.println ("Usage: java client [rmihost]"); 
+			System.out.println ("Usage: java client rmihost:rmi_name"); 
 			System.exit(1); 
 	    }
 		
@@ -55,9 +54,9 @@ public class client
 		try 
 		{
 			// get a reference to the rmiregistry
-			Registry registry = LocateRegistry.getRegistry(server, port);
+			Registry registry = LocateRegistry.getRegistry(server);
 			// get the proxy and the remote reference by rmiregistry lookup
-			rm = (ResourceManager) registry.lookup("reservator_middleware_rm");
+			rm = (ResourceManager) registry.lookup(rm_name);
 			if(rm!=null)
 			{
 				System.out.println("Successful");

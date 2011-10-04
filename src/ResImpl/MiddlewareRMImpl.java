@@ -36,48 +36,40 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 
 	public static void main(String args[]) {
 		// Figure out where server is running
-		int port = -1;
 		String server = "";
 		String rmName = "";
 		ArrayList<ResourceManager> serverRMImplArray = new ArrayList<ResourceManager>();
 
-		if (args.length == 1) {
-			server = "localhost";
-		} else if (args.length < 6) {
+		if (args.length < 4) {
 			System.err.println ("Wrong usage");
-			System.out.println("Usage: java ResImpl.ResourceManagerImpl [port] [hostname] [rmname] [...] [...] [...]\n" + 
+			System.out.println("Usage: java ResImpl.ResourceManagerImpl [rmname] [...] [...] [...]\n" + 
 					"\tWhere [...] represents the active resource managers for middleware to connect to" + 
 					" for cars, hotels, and flights");
 			System.exit(1);
 		}
-
-		port = Integer.parseInt(args[0]);
-		server = args[1];
-		rmName = args[2];
+	
+		rmName = args[0];
 		
-		//error checking in server:port:rmname arguments
-		for (int i = 3; i < args.length; i++) {
-			if(args[i].split(":").length != 3) {
-				System.err.println("For each rm = [...], rm must be in the format of [rmhost:port:rmname].");
+		//error checking in server:rmname arguments
+		for (int i = 1; i < args.length; i++) {
+			if(args[i].split(":").length != 2) {
+				System.err.println("For each rm = [...], rm must be in the format of [rmhost:rmname].");
 				return;
 			}
 		}
 
 		try 
 		{
-			//server must be localhost -- changeback to getRegistry()
-			Registry registry = LocateRegistry.getRegistry(server, port);
-
+			Registry registry = LocateRegistry.getRegistry(server);
 
 			//Get resource managers from rmiregistry
-			for (int i = 3; i < args.length; i++) {				
+			for (int i = 1; i < args.length; i++) {				
 			    String elements[] = args[i].split(":");
 			    
 			    String serveri = elements[0];
-			    int porti = Integer.parseInt(elements[1]);
-			    String rmnamei = elements[2];
+			    String rmnamei = elements[1];
 			    
-				Registry registryi = LocateRegistry.getRegistry(serveri, porti);
+				Registry registryi = LocateRegistry.getRegistry(serveri);
 
 				// get the proxy and the remote reference by rmiregistry lookup, we assume rms are on port 1099
 				ResourceManager rm = (ResourceManager) registryi.lookup(rmnamei);
@@ -96,7 +88,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 			// create a new Server object
 			ResourceManager obj = new MiddlewareRMImpl(serverRMImplArray.get(0), serverRMImplArray.get(1), serverRMImplArray.get(2));
 
-			((MiddlewareRMImpl)obj).setPort(port);
+			((MiddlewareRMImpl)obj).setPort(-1337);
 			((MiddlewareRMImpl)obj).setHost(server);
 
 			// dynamically generate the stub (client proxy)
@@ -399,10 +391,25 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 		return cid;
 	}
 
-	public boolean newCustomer(int id, int customerID )
+	public boolean newCustomer(int id, int cid )
 			throws RemoteException {
-		//Nothing. Only applies to ServerRMImpl
-		return false;
+	
+		synchronized(flightsRM) {
+			if (!flightsRM.newCustomer(id, cid)) {
+				return false;
+			}
+		}
+		synchronized(hotelsRM) {
+			if(!hotelsRM.newCustomer(id, cid)) {
+				return false;
+			}
+		}
+		synchronized(carsRM) {
+			if (!carsRM.newCustomer(id, cid)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 
