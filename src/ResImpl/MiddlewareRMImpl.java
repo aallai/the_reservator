@@ -65,6 +65,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 
 		try 
 		{
+			//server must be localhost -- changeback to getRegistry()
 			Registry registry = LocateRegistry.getRegistry(server, port);
 
 
