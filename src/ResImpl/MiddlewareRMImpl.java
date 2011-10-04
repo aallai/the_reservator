@@ -461,12 +461,21 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	public boolean itinerary(int id,int customer,Vector<Integer> flightNumbers,String location,boolean Car,boolean Room)
 			throws RemoteException {    	
 		String traceStr = "MiddlewareRM::itinerary(" + id + ", " + customer + ", < ";
+		
 		for(int i : flightNumbers) {
 			traceStr += "("+ Integer.toString(i) + "), ";
 		}
 		traceStr += ">, " + location + ", " + Car + ", " + Room + ") called";
 		Trace.info(traceStr);
 
+		for(int i : flightNumbers) {
+			synchronized(flightsRM) {
+				int seats = flightsRM.queryFlight(id, i);
+				if(seats == 0) {
+					return false;
+				}
+			}
+		}
 
 		for (int i : flightNumbers) {
 			synchronized(flightsRM) {
