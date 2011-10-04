@@ -13,19 +13,16 @@ public class ServerRMImpl extends ResourceManagerImpl {
 	
 	public static void main(String args[]) {
         // Figure out where server is running
-        String server = "";
         String rmName = "";
         
-         if (args.length == 1) {
-             server += "localhost:" + args[0];
-         } else if (args.length != 3) {
+       
+         if (args.length != 1) {
              System.err.println ("Wrong usage");
-             System.out.println("Usage: java ResImpl.ServerRMImpl [port] [hostname] [rmName]");
+             System.out.println("Usage: java ResImpl.ServerRMImpl [rmName]");
              System.exit(1);
          }
 		 
-         rmName = args[2];
-         System.out.println("Usage: java ResImpl.ServerRMImpl " + args[0] + " " + args[1] + " " + args[2]);
+         rmName = args[0];
 
 		 try 
 		 {
