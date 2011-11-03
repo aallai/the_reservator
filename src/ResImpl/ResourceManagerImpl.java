@@ -431,5 +431,23 @@ public class ResourceManagerImpl
 	throws RemoteException {
     	return false;
     }
+    
+    /*
+     * Returns transaction number
+     */
+    public int startTransaction()
+    {
+    	return -1;
+    }
+    
+    public boolean commitTransaction(int tnum)
+    {
+    	return false;
+    }
+    
+    public boolean abortTransaction(int tnum)
+    {
+    	return false;
+    }
 
 }
