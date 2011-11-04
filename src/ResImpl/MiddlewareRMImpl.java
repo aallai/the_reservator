@@ -120,14 +120,14 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	protected boolean deleteItem(int id, String key)
 	{
 		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteItem(" + id + ", " + key + ") called" );
-		ReservableItem curObj = (ReservableItem) readData( id, key );
+		ReservableItem curObj = (ReservableItem) readData(key );
 		// Check if there is such an item in the storage
 		if( curObj == null ) {
 			Trace.warn("MiddlewareRm("+hostName+":"+portNumber+")::deleteItem(" + id + ", " + key + ") failed--item doesn't exist" );
 			return false;
 		} else {
 			if(curObj.getReserved()==0){
-				removeData(id, curObj.getKey());
+				removeData(curObj.getKey());
 				Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteItem(" + id + ", " + key + ") item deleted" );
 				return true;
 			}
