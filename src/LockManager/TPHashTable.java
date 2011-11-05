@@ -167,4 +167,28 @@ public class TPHashTable
             }
         }
     }
+    
+    public synchronized void printDataLocks() {
+        Vector vectSlot = null;
+        XObj xobj = null;
+        
+        System.out.print("- "); 
+        
+        for (int i = 0; i < this.iSize; i++) {    // walk down hashslots
+            if ( (this.vect).size() > 0 ) {    // contains elements?
+                vectSlot = (Vector) (this.vect).elementAt(i);
+                
+                for (int j = 0; j < vectSlot.size(); j++) {    // walk down single hash slot, adding elements.
+                    xobj = (XObj) vectSlot.elementAt(j);
+
+                    if (xobj instanceof DataObj) {
+                    	System.out.print(((((DataObj) xobj).lockType == ((DataObj) xobj).READ) ? "r" : "w") 
+                    			+ "(" + xobj.xid + ", " + ((DataObj)xobj).strData + "), ");
+                    }
+                }
+            }
+        }
+        
+        System.out.println("");
+    }
 }

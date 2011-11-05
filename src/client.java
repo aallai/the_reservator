@@ -1,4 +1,7 @@
 import java.rmi.*;
+
+import LockManager.DeadlockException;
+import LockManager.LockManager;
 import ResInterface.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -12,8 +15,30 @@ public class client
     static String message = "blank";
     static ResourceManager rm = null;
 
+    private static final boolean TESTING_LOCK_MANAGER = false;
+    
     public static void main(String args[])
 	{
+    	if (TESTING_LOCK_MANAGER) {
+    		System.out.println("Testing Lock Manager");
+    		LockManager lm = new LockManager();
+    		
+    		try {
+				lm.Lock(1, "pizza", LockManager.READ);
+				lm.Lock(1, "ham", LockManager.WRITE);
+				
+				lm.Lock(1, "ham", LockManager.READ);
+				lm.Lock(1, "pizza", LockManager.WRITE);
+				
+				//lm.Lock(2, "ham", LockManager.READ); - deadlock
+				lm.UnlockAll(1);
+				lm.Lock(3, "ham", LockManager.READ);
+
+			} catch (DeadlockException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	} else {
 	    client obj = new client();
 	    BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
 	    String command = "";
@@ -590,6 +615,7 @@ public class client
 		    break;
 		}//end of switch
 	    }//end of while(true)
+    	}
 	}
 	    
     public Vector parse(String command)
