@@ -20,14 +20,71 @@ import java.rmi.server.UnicastRemoteObject;
 public class ResourceManagerImpl
 	implements ResourceManager {
 	
+	private Integer transaction_num = 0;
+	
 	protected RMHashtable m_itemHT = new RMHashtable();
 	Hashtable<Integer, RMTransaction> t_table = new Hashtable<Integer, RMTransaction>();
     
     public ResourceManagerImpl() throws RemoteException {
     }
 
+    
+    public static void main(String args[]) {
+        // Figure out where server is running
+        String rmName = "";
+        
+       
+         if (args.length != 1) {
+             System.err.println ("Wrong usage");
+             System.out.println("Usage: java ResImpl.ResourceManagerImpl [rmName]");
+             System.exit(1);
+         }
+		 
+         rmName = args[0];
+
+		 try 
+		 {
+			Registry registry = LocateRegistry.getRegistry();
+			 
+			System.out.println("Located Registry");
+			
+			// create a new Server object
+			ResourceManager obj = new ResourceManagerImpl();
+			
+			System.out.println("Created Stub");
+
+			// dynamically generate the stub (client proxy)
+			ResourceManager rm = (ResourceManager) UnicastRemoteObject.exportObject(obj, 0);
+			
+			System.out.println("Created Resource Manager ()");
+			
+			// Bind the remote object's stub in the registry
+			//Note: for registry any host but the localhost will draw an exception here.
+			registry.rebind(rmName, rm);
+			
+			System.out.println("Binded Stub to Registry");
+			System.err.println("Server ready");
+		} catch(AccessException e) {
+			System.err.println("Access Remote Server exception: " + e.toString());
+			e.printStackTrace();
+			System.exit(1);			
+		} catch(RemoteException e) {
+			System.err.println("Remote Server exception: " + e.toString());
+			e.printStackTrace();
+			System.exit(1);
+		} 
+		catch (Exception e) 
+		{
+			System.err.println("Server exception: " + e.toString());
+			e.printStackTrace();
+			System.exit(1);
+
+		}
+    }
+    
+    
 	// Reads a data item
-	protected RMItem readData(String key )
+	private RMItem readData(String key )
 	{
 		synchronized(m_itemHT){
 			return (RMItem) m_itemHT.get(key);
@@ -35,15 +92,20 @@ public class ResourceManagerImpl
 	}
 
 	// Writes a data item
-	protected void writeData(String key, RMItem value )
+	private void writeData(String key, RMItem value )
 	{
+		System.out.println("Writing " + key);
+		
 		synchronized(m_itemHT){
 			m_itemHT.put(key, value);
 		}
 	}
 	
 	// Remove the item out of storage
-	protected RMItem removeData(String key){
+	private RMItem removeData(String key){
+		
+		System.out.println("Removing " + key);
+		
 		synchronized(m_itemHT){
 			return (RMItem)m_itemHT.remove(key);
 		}
@@ -532,21 +594,22 @@ public class ResourceManagerImpl
     }
     
     /*
-     * MiddleWare should provide transaction id.
+     * Returns a transaction number
      */
-    public boolean startTransaction(int tid)
+    public int startTransaction() throws RemoteException
     {
-    	// already exists
-    	if(check_tid(tid)) {
-    		return false;
+    	int tid;
+    	
+    	synchronized(transaction_num) {
+    		tid = transaction_num++;
     	}
     	
     	this.t_table.put(tid, new RMTransaction(tid));
     	
-    	return true;
+    	return tid;
     }
     
-    public boolean commitTransaction(int tid)
+    public boolean commitTransaction(int tid) throws RemoteException
     {
     	if (!check_tid(tid)) {
     		return false;
@@ -559,7 +622,7 @@ public class ResourceManagerImpl
     }
     
     //
-    public boolean abortTransaction(int tid)
+    public boolean abortTransaction(int tid) throws RemoteException
     {
     	if (!check_tid(tid)) {
     		return false;
@@ -567,11 +630,15 @@ public class ResourceManagerImpl
     	
     	RMTransaction t = this.t_table.get(tid);
     	
+    	System.out.println();
+    	System.out.println("before >>>");
+    	this.m_itemHT.dump();
+    	
     	boolean ret = true;
     	// undo operations performed by transaction
     	for (RMOperation operation : t.undo_set) {
     		try {
-    			operation.op.invoke(this, operation.args);
+    			operation.op.invoke(this, operation.args.toArray());
     		} catch (InvocationTargetException e) {
     			e.getTargetException().printStackTrace();
     			ret = false;
@@ -580,6 +647,9 @@ public class ResourceManagerImpl
     			ret = false;
     		}
     	}
+    	
+    	System.out.println("After >>>");
+    	this.m_itemHT.dump();
     	
     	return true;
     }
@@ -599,7 +669,7 @@ public class ResourceManagerImpl
 		try {
 			m = rm.getDeclaredMethod("removeData", String.class);
 		} catch (NoSuchMethodException e) {
-			Trace.error("Reflection error");
+			e.printStackTrace();
 			return false;
 		}
 					
@@ -614,6 +684,7 @@ public class ResourceManagerImpl
     private boolean addWrite(int tid, String key, RMItem obj)
     {
     	Class rm = this.getClass();
+    		
     	if (!check_tid(tid)) {
     		return false;
     	}
@@ -625,7 +696,7 @@ public class ResourceManagerImpl
 		try {
 			m = rm.getDeclaredMethod("writeData", String.class, RMItem.class);
 		} catch (NoSuchMethodException e) {
-			Trace.error("Reflection Error");
+			e.printStackTrace();
 			return false;
 		}
 		
