@@ -238,6 +238,8 @@ public class ResourceManagerImpl
 				return false;
 			}
 			
+			Trace.info("RM::addFlight (" + tid + ", " + flightNum + ", " + flightSeats + ", " + flightPrice + ") succeeded");
+			
 		} else {
 			Flight old = (Flight) curObj.copy();
 
