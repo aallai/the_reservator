@@ -1,13 +1,13 @@
 package ResImpl;
 
-import java.util.ArrayList;
+import java.util.Stack;
 
 public class RMTransaction {
 	int tid;   //transaction id
-	ArrayList<RMOperation> undo_set;
+	Stack<RMOperation> undo_stack;
 	
 	RMTransaction(int tid) {
 		this.tid = tid;
-		this.undo_set = new ArrayList<RMOperation>();
+		this.undo_stack = new Stack<RMOperation>();
 	}
 }

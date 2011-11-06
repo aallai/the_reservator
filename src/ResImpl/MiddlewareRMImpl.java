@@ -116,42 +116,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 		}
 	}
 
-	// deletes the entire item
-	protected boolean deleteItem(int id, String key)
-	{
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteItem(" + id + ", " + key + ") called" );
-		ReservableItem curObj = (ReservableItem) readData(key );
-		// Check if there is such an item in the storage
-		if( curObj == null ) {
-			Trace.warn("MiddlewareRm("+hostName+":"+portNumber+")::deleteItem(" + id + ", " + key + ") failed--item doesn't exist" );
-			return false;
-		} else {
-			if(curObj.getReserved()==0){
-				removeData(curObj.getKey());
-				Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteItem(" + id + ", " + key + ") item deleted" );
-				return true;
-			}
-			else{
-				Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteItem(" + id + ", " + key + ") item can't be deleted because some customers reserved it" );
-				return false;
-			}
-		}
-	}
-
-	// query the number of available seats/rooms/cars
-	protected int queryNum(int id, String key) {
-		return -1;
-	}	
-
-	// query the price of an item
-	protected int queryPrice(int id, String key){
-		return -1;		
-	}
-
-	// reserve an item
-	protected boolean reserveItem(int id, int customerID, String key, String location){
-		return false;
-	}
+	
 
 	// Create a new flight, or add seats to existing flight
 	//  NOTE: if flightPrice <= 0 and the flight already exists, it maintains its current price

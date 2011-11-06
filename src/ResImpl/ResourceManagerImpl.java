@@ -180,7 +180,7 @@ public class ResourceManagerImpl
 		// Read customer object if it exists (and read lock it)
 		Customer cust = (Customer) readData(Customer.getKey(customerID) );		
 		if( cust == null ) {
-			Trace.warn("RM::reserveCar( " + tid + ", " + customerID + ", " + key + ", "+location+")  failed--customer doesn't exist" );
+			Trace.warn("RM::reserveItem( " + tid + ", " + customerID + ", " + key + ", "+location+")  failed--customer doesn't exist" );
 			return false;
 		} 
 		
@@ -194,7 +194,11 @@ public class ResourceManagerImpl
 			return false;
 		}else{			
 			Customer old = new Customer(cust.getID());
-			old.m_Reservations = cust.getReservations();
+			old.m_Reservations = (RMHashtable) cust.getReservations().clone();
+			
+			System.out.println("Reservations >>>");
+			old.m_Reservations.toString();
+			System.out.println();
 			
 			cust.reserve( key, location, item.getPrice());		
 			writeData(cust.getKey(), cust );
@@ -637,8 +641,13 @@ public class ResourceManagerImpl
     	this.m_itemHT.dump();
     	
     	boolean ret = true;
+    	
     	// undo operations performed by transaction
-    	for (RMOperation operation : t.undo_set) {
+    	RMOperation operation;
+    	while(!t.undo_stack.empty()) {
+    		
+    		operation = t.undo_stack.pop();
+    		
     		try {
     			operation.op.invoke(this, operation.args.toArray());
     		} catch (InvocationTargetException e) {
@@ -678,7 +687,7 @@ public class ResourceManagerImpl
 		ArrayList args = new ArrayList();
 		args.add(key);	
 					
-		t.undo_set.add(new RMOperation(m, args));	
+		t.undo_stack.push(new RMOperation(m, args));	
 		
 		return true;
     }
@@ -706,7 +715,7 @@ public class ResourceManagerImpl
 		args.add(key);
 		args.add(obj);
 		
-		t.undo_set.add(new RMOperation(m, args));
+		t.undo_stack.push(new RMOperation(m, args));
 		
 		return true;
     }
