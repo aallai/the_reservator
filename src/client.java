@@ -19,7 +19,7 @@ public class client
     private static final boolean TESTING_LOCK_MANAGER = false;
     private static final boolean RUNNING_PERMANCE_TEST = true;
     
-    private static ClientPerformanceTest performanceManager;
+    private static ClientPerformanceTest performanceManager;	//we do most of the work for performance analysis in this class
     
     public static ClientRequestThread.TransactionType stringToTransactionType(String str) {
     	if (str.equalsIgnoreCase("new_customer")) {
