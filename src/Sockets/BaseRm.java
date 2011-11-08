@@ -11,6 +11,7 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.rmi.RemoteException;
 import java.util.*;
 
 /*
@@ -442,10 +443,13 @@ public abstract class BaseRm
 		return reserveItem(id, customerID, Flight.getKey(flightNum), String.valueOf(flightNum));
 	}
 	
-	/* reserve an itinerary */
-    public boolean itinerary(int id,int customer,Vector flightNumbers,String location,boolean Car,boolean Room)
-    {
-    	return false;
-    }
+
+
+	public boolean itinerary(int tid, int customer,
+			Vector<Integer> flightNumbers, String location, boolean Car,
+			boolean Room) throws RemoteException {
+		// TODO Auto-generated method stub
+		return false;
+	}
 
 }

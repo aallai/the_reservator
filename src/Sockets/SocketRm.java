@@ -3,6 +3,7 @@ package Sockets;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 
 /**
@@ -74,5 +75,23 @@ public class SocketRm extends  BaseRm
 		}
 		
 		return ret;
+	}
+
+	@Override
+	public int startTransaction() throws RemoteException {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public boolean commitTransaction(int tid) throws RemoteException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean abortTransaction(int tid) throws RemoteException {
+		// TODO Auto-generated method stub
+		return false;
 	}
 }
