@@ -8,7 +8,8 @@ import java.rmi.registry.Registry;
 
 import java.util.*;
 import java.io.*;
-
+import PerformanceTest.ClientPerformanceTest;
+import PerformanceTest.ClientRequestThread;
 
 public class client
 {
@@ -16,6 +17,19 @@ public class client
     static ResourceManager rm = null;
 
     private static final boolean TESTING_LOCK_MANAGER = false;
+    private static final boolean RUNNING_PERMANCE_TEST = true;
+    
+    private static ClientPerformanceTest performanceManager;
+    
+    public static ClientRequestThread.TransactionType stringToTransactionType(String str) {
+    	if (str.equalsIgnoreCase("new_customer")) {
+    		return ClientRequestThread.TransactionType.NEW_CUSTOMER;
+    	} else if (str.equalsIgnoreCase("itinerary")) {
+    		return ClientRequestThread.TransactionType.ITINERARY;
+    	}
+    	
+    	return ClientRequestThread.TransactionType.VOID;
+    }
     
     public static void main(String args[])
 	{
@@ -33,11 +47,47 @@ public class client
 				//lm.Lock(2, "ham", LockManager.READ); - deadlock
 				lm.UnlockAll(1);
 				lm.Lock(3, "ham", LockManager.READ);
+				lm.Lock(4, "ham", LockManager.READ);
+				//lm.Lock(4, "ham", LockManager.WRITE); - deadlock
 
 			} catch (DeadlockException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+    	} else if (RUNNING_PERMANCE_TEST) {
+    		//Run performance tests with ClientPerformanceTest class
+    	    String server = "";
+    	    String rm_name = "";
+    	    ClientRequestThread.TransactionType transactionType1;
+    	    ClientRequestThread.TransactionType transactionType2;
+    	    int load = -1;
+    	    int submitRequestVariation = -1;
+    		
+    		//Determine if input is correct
+    	    if (args.length == 5) {
+    			server = args[0]; 
+    			
+    		    String elements[] = server.split(":");
+    		    
+    		    if (elements.length != 2) {
+    		    	System.err.println("[rmihost] must be in the format [server:rm_name]");
+    		    }
+    		    
+    		    server = elements[0];
+    		    rm_name = elements[1];
+    		    
+    		    transactionType1 = stringToTransactionType(args[1]);
+    		    transactionType2 = stringToTransactionType(args[2]);
+    		    
+    		    load = Integer.parseInt(args[3]);
+    		    submitRequestVariation = Integer.parseInt(args[4]);
+    		    
+        		performanceManager = new ClientPerformanceTest(ClientPerformanceTest.PART_A, server, rm_name, transactionType1, transactionType2, load, submitRequestVariation);
+    	    } else
+    		{
+    			System.out.println ("Usage: java client rmihost:rmi_name transaction_type1 transaction_type2 max_load sleep_variation"); 
+    			System.exit(1); 
+    	    }    		
     	} else {
 	    client obj = new client();
 	    BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
