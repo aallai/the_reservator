@@ -252,6 +252,8 @@ public class LockManager
                 	if (dataObj2.getLockType() == DataObj.READ) {
                 		//(1) Transaction Already has a READ lock -- the new write lock is valid
                 		bitset.set(0);
+                		
+                		//dont return true right away, as others may have right access aswell
                 	} else if (dataObj2.getLockType() == DataObj.WRITE) {
                 		//(2) Transaction Already has a WRITE lock - rendundant case
                 		throw new RedundantLockRequestException(dataObj.getXId(), "Redundant WRITE lock request");

@@ -84,7 +84,7 @@ public class ResourceManagerImpl
     
     
 	// Reads a data item
-	private RMItem readData(String key )
+	protected RMItem readData(String key )
 	{
 		synchronized(m_itemHT){
 			return (RMItem) m_itemHT.get(key);
@@ -102,7 +102,7 @@ public class ResourceManagerImpl
 	}
 	
 	// Remove the item out of storage
-	private RMItem removeData(String key){
+	protected RMItem removeData(String key){
 		
 		System.out.println("Removing " + key);
 		
