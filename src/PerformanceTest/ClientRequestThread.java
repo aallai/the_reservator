@@ -12,6 +12,7 @@ import ResInterface.ResourceManager;
 		public static enum TransactionType {
 			NEW_CUSTOMER,
 			ITINERARY,
+			BOOK_FLIGHT,
 			VOID
 		}
 		
@@ -91,6 +92,9 @@ import ResInterface.ResourceManager;
 					break;
 				case ITINERARY:
 					
+					break;
+					
+				case BOOK_FLIGHT:
 					break;
 				}
 			}

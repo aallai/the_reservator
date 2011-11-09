@@ -26,6 +26,8 @@ public class client
     		return ClientRequestThread.TransactionType.NEW_CUSTOMER;
     	} else if (str.equalsIgnoreCase("itinerary")) {
     		return ClientRequestThread.TransactionType.ITINERARY;
+    	} else if (str.equalsIgnoreCase("book_flight")) {
+    		return ClientRequestThread.TransactionType.BOOK_FLIGHT;
     	}
     	
     	return ClientRequestThread.TransactionType.VOID;
