@@ -77,7 +77,9 @@ import ResInterface.ResourceManager;
 					    System.out.println("Adding a new Customer using id: "+id);
 					    try{
 					    	start = System.currentTimeMillis();
+					    	rm.startTransaction();
 					    	int customer=rm.newCustomer(id);
+					    	rm.commitTransaction(id);
 					    	end = System.currentTimeMillis();
 					    	results.add(new Integer((int)(end-start)));
 					    	
