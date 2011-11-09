@@ -1,37 +1,27 @@
 package ResImpl;
 import ResInterface.*;
-
 import java.util.*;
 import java.rmi.*;
-
+import java.util.TimerTask;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
-/*
-public class MiddlewareRMImpl extends ResourceManagerImpl {
+
+public class MiddlewareRMImpl implements ResourceManager {
 	protected ResourceManager flightsRM;
 	protected ResourceManager carsRM;
 	protected ResourceManager hotelsRM;
-
-	protected int portNumber;
-	protected String hostName;
+	protected Hashtable<Integer, MiddlewareTransaction> t_table;
+	Integer t_count = 0;
 	
 	public MiddlewareRMImpl(ResourceManager flights, ResourceManager cars, ResourceManager hotels) throws RemoteException {
-		super();
-
 		flightsRM = flights;
 		carsRM = cars;
 		hotelsRM = hotels;
-	}
-	
-	public void setPort(int port) {
-		portNumber = port;
-	}
-	
-	public void setHost(String host) {
-		hostName = host;
+		
+		t_table = new Hashtable<Integer, MiddlewareTransaction>();	
 	}
 
 	public static void main(String args[]) {
@@ -88,9 +78,6 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 			// create a new Server object
 			ResourceManager obj = new MiddlewareRMImpl(serverRMImplArray.get(0), serverRMImplArray.get(1), serverRMImplArray.get(2));
 
-			((MiddlewareRMImpl)obj).setPort(-1337);
-			((MiddlewareRMImpl)obj).setHost(server);
-
 			// dynamically generate the stub (client proxy)
 			ResourceManager rm = (ResourceManager) UnicastRemoteObject.exportObject(obj, 0);
 
@@ -120,92 +107,168 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 
 	// Create a new flight, or add seats to existing flight
 	//  NOTE: if flightPrice <= 0 and the flight already exists, it maintains its current price
-	public void addFlight(int id, int flightNum, int flightSeats, int flightPrice)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::addFlight(" + id + ", " + flightNum + ", " + flightSeats + ", $" + flightPrice + ") called" );
+	public void addFlight(int tid, int flightNum, int flightSeats, int flightPrice) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		add_rm(t, this.flightsRM);
+		int rmtid = t.rm_table.get(this.flightsRM);
 
-		boolean result = false;
+		Trace.info("MiddlewareRm()::addFlight(" + tid + ", " + flightNum + ", " + flightSeats + ", $" + flightPrice + ") called" );
 		
-		result = flightsRM.addFlight(id, flightNum, flightSeats, flightPrice);
+		try {
+			flightsRM.addFlight(rmtid, flightNum, flightSeats, flightPrice);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "AddFlight failed.");
+		}
 		
+		read_unlock(t);
+		set_timer(t);
 	}
 
-	public void deleteFlight(int id, int flightNum)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteFlight(" + id + ", " + flightNum + ") called" );
+	public void deleteFlight(int tid, int flightNum) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
 
-		boolean result = false;
-		synchronized(flightsRM) {
-			result = flightsRM.deleteFlight(id, flightNum);
+		Trace.info("MiddlewareRm()::deleteFlight(" + tid + ", " + flightNum + ") called" );
+		
+		add_rm(t, this.flightsRM);
+		int rmtid = t.rm_table.get(this.flightsRM);
+		
+		try {
+			flightsRM.deleteFlight(rmtid, flightNum);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "deleteFlight failed.");
 		}
-
-		return result;
+		
+		read_unlock(t);
+		set_timer(t);
 	}
 
 	// Create a new room location or add rooms to an existing location
 	//  NOTE: if price <= 0 and the room location already exists, it maintains its current price
-	public void addRooms(int id, String location, int count, int price)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::addRooms(" + id + ", " + location + ", " + count + ", $" + price + ") called" );
+	public void addRooms(int tid, String location, int count, int price) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		Trace.info("MiddlewareRm()::addRooms(" + tid + ", " + location + ", " + count + ", $" + price + ") called" );
 
-		boolean success;
-		synchronized(hotelsRM) {
-			success = hotelsRM.addRooms(id, location, count, price);
+		add_rm(t, this.hotelsRM);
+		int rmtid = t.rm_table.get(this.hotelsRM);
+		
+		try {
+			hotelsRM.addRooms(rmtid, location, count, price);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "addRooms failed.");
 		}
-
-		return success;
+		
+		read_unlock(t);
+		set_timer(t);
 	}
 
 	// Delete rooms from a location
-	public void deleteRooms(int id, String location)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteRooms(" + id + ", " + location + ") called" );
+	public void deleteRooms(int tid, String location) throws RemoteException, 
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		Trace.info("MiddlewareRm()::deleteRooms(" + tid + ", " + location + ") called" );
 
-		boolean success;
-		synchronized(hotelsRM) {
-			success = hotelsRM.deleteRooms(id, location);
+		add_rm(t, this.hotelsRM);
+		int rmtid = t.rm_table.get(this.hotelsRM);
+		
+		try {
+			hotelsRM.deleteRooms(rmtid, location);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "deleteRooms failed.");
 		}
-
-		return success;
+		
+		read_unlock(t);
+		set_timer(t);
 	}
 
 	// Create a new car location or add cars to an existing location
 	//  NOTE: if price <= 0 and the location already exists, it maintains its current price
-	public void addCars(int id, String location, int count, int price)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::addCars(" + id + ", " + location + ", " + count + ", $" + price + ") called" );
+	public void addCars(int tid, String location, int count, int price) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		Trace.info("MiddlewareRm()::addCars(" + tid + ", " + location + ", " + count + ", $" + price + ") called" );
 
-		boolean success;
-		synchronized(carsRM) {
-			success = carsRM.addCars(id, location, count, price);
+		add_rm(t, this.carsRM);
+		int rmtid = t.rm_table.get(this.carsRM);
+		
+		try {
+			carsRM.addCars(rmtid, location, count, price);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "addCars failed.");
 		}
-
-		return success;
+		
+		read_unlock(t);
+		set_timer(t);
 	}
 
 	// Delete cars from a location
-	public void deleteCars(int id, String location)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteCars(" + id + ", " + location + ") called" );
+	public void deleteCars(int tid, String location) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException 
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		Trace.info("MiddlewareRm()::deleteCars(" + tid + ", " + location + ") called" );
 
-		boolean success;
-		synchronized(carsRM) {
-			success = carsRM.deleteCars(id, location);
+		add_rm(t, this.carsRM);
+		int rmtid = t.rm_table.get(this.carsRM);
+		
+		try {
+			carsRM.deleteCars(rmtid, location);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "deleteCars failed.");
 		}
-
-		return success;
+		
+		read_unlock(t);
+		set_timer(t);
 	}
 
 	// Returns the number of empty seats on this flight
-	public int queryFlight(int id, int flightNum)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::queryFlight(" + id + ", " + flightNum + ") called" );
+	public int queryFlight(int tid, int flightNum) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		Trace.info("MiddlewareRm()::queryFlight(" + tid + ", " + flightNum + ") called" );
 
+		add_rm(t, this.carsRM);
+		int rmtid = t.rm_table.get(this.flightsRM);
+		
 		int numberOfEmptySeats;
-		synchronized(flightsRM) {
-			numberOfEmptySeats = flightsRM.queryFlight(id, flightNum);
+		
+		try {
+			numberOfEmptySeats = flightsRM.queryFlight(rmtid, flightNum);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "queryFlight failed.");
 		}
 
+		read_unlock(t);
+		set_timer(t);
+		
 		return numberOfEmptySeats;
 	}
 
@@ -223,285 +286,513 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	//	}
 
 	// Returns price of this flight
-	public int queryFlightPrice(int id, int flightNum )
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::queryFlightPrice(" + id + ", " + flightNum + ") called" );
+	public int queryFlightPrice(int tid, int flightNum ) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		Trace.info("MiddlewareRm()::queryFlightPrice(" + tid + ", " + flightNum + ") called" );
 
+		add_rm(t, this.carsRM);
+		int rmtid = t.rm_table.get(this.flightsRM);
+		
 		int flightPrice;
-		synchronized(flightsRM) {
-			flightPrice = flightsRM.queryFlight(id, flightNum);
+		try {
+			flightPrice = flightsRM.queryFlight(rmtid, flightNum);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "queryFlightPrice failed.");
 		}
 
-		return flightPrice;		
+		read_unlock(t);
+		set_timer(t);
+		
+		return flightPrice;
 	}
 
 	// Returns the number of rooms available at a location
-	public int queryRooms(int id, String location)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::queryRooms(" + id + ", " + location + ") called" );
+	public int queryRooms(int tid, String location) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		Trace.info("MiddlewareRm()::queryRooms(" + tid + ", " + location + ") called" );
 
+		add_rm(t, this.hotelsRM);
+		int rmtid = t.rm_table.get(this.hotelsRM);
+		
 		int numOfRoomsAvailable;		
-		synchronized(hotelsRM) {
-			numOfRoomsAvailable = hotelsRM.queryRooms(id, location);
+		try {
+			numOfRoomsAvailable = hotelsRM.queryRooms(rmtid, location);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "queryRooms failed.");
 		}
+		
+		read_unlock(t);
+		set_timer(t);
 
 		return numOfRoomsAvailable;			
 	}
 
 	// Returns room price at this location
-	public int queryRoomsPrice(int id, String location)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::queryRoomsPrice(" + id + ", " + location + ") called" );
+	public int queryRoomsPrice(int tid, String location) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		Trace.info("MiddlewareRm()::queryRoomsPrice(" + tid + ", " + location + ") called" );
 
+		add_rm(t, this.hotelsRM);
+		int rmtid = t.rm_table.get(this.hotelsRM);
+		
 		int price;		
-		synchronized(hotelsRM) {
-			price = hotelsRM.queryRoomsPrice(id, location);
+		try {
+			price = hotelsRM.queryRoomsPrice(rmtid, location);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "queryRooms failed.");
 		}
 
+		read_unlock(t);
+		set_timer(t);
+		
 		return price;		
 	}
 
 	// Returns the number of cars available at a location
-	public int queryCars(int id, String location)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::queryCars(" + id + ", " + location + ") called" );
+	public int queryCars(int tid, String location) throws RemoteException, 
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		Trace.info("MiddlewareRm()::queryCars(" + tid + ", " + location + ") called" );
 
+		add_rm(t, this.carsRM);
+		int rmtid = t.rm_table.get(this.carsRM);
+		
 		int numOfCarsAvailable;		
-		synchronized(carsRM) {
-			numOfCarsAvailable = carsRM.queryCars(id, location);
+		try {
+			numOfCarsAvailable = carsRM.queryCars(rmtid, location);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "queryCars failed.");
 		}
+		
+		read_unlock(t);
+		set_timer(t);
 
 		return numOfCarsAvailable;	
 	}
 
 	// Returns price of cars at this location
-	public int queryCarsPrice(int id, String location)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::queryCarsPrice(" + id + ", " + location + ") called" );
+	public int queryCarsPrice(int tid, String location) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		Trace.info("MiddlewareRm()::queryCarsPrice(" + tid + ", " + location + ") called" );
 
+		MiddlewareTransaction t = read_lock(tid);
+		
+		add_rm(t, this.carsRM);
+		int rmtid = t.rm_table.get(this.carsRM);
+		
 		int price;		
-		synchronized(carsRM) {
-			price = carsRM.queryCarsPrice(id, location);
+		try {
+			price = carsRM.queryCarsPrice(rmtid, location);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "queryCarsPrice failed.");
 		}
 
+		read_unlock(t);
+		set_timer(t);
+		
 		return price;
 	}
 
-	// Returns data structure containing customer reservation info. Returns null if the
-	//  customer doesn't exist. Returns empty RMHashtable if customer exists but has no
-	//  reservations.
-	public RMHashtable getCustomerReservations(int id, int customerID)
-			throws RemoteException {
-		return null;
-	}
-
 	// return a bill
-	public String queryCustomerInfo(int id, int customerID)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::queryCustomerInfo(" + id + ", " + customerID + ") called" );
+	public String queryCustomerInfo(int tid, int customerID) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		Trace.info("MiddlewareRm()::queryCustomerInfo(" + tid + ", " + customerID + ") called" );
 
-		String theBill = "";
+		add_rm(t, this.carsRM);
+		add_rm(t, this.flightsRM);
+		add_rm(t, this.hotelsRM);
+		
+		int ftid = t.rm_table.get(this.flightsRM);
+		int ctid = t.rm_table.get(this.carsRM);
+		int htid = t.rm_table.get(this.hotelsRM);
+		
+		String theBill = "Bill for customer " + customerID;
 		String bills[] = new String[3];
 
-		synchronized(flightsRM) {
-			bills[0] = flightsRM.queryCustomerInfo(id, customerID);	
-		}
-		synchronized(hotelsRM) {
-			bills[1] = hotelsRM.queryCustomerInfo(id, customerID);
-		}
-		synchronized(carsRM) {
-			bills[2] = carsRM.queryCustomerInfo(id, customerID);			
+		try {
+			
+			bills[0] = flightsRM.queryCustomerInfo(ftid, customerID);	
+			bills[1] = hotelsRM.queryCustomerInfo(htid, customerID);
+			bills[2] = carsRM.queryCustomerInfo(ctid, customerID);			
+			
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "queryCustomerInfo failed.");
 		}
 
+		
+		
 		for (int i = 0; i < 3; i++) {
-			// call may have failed
-			if (((String) bills[i]).equals("")) {
-				Trace.warn("MiddlewareRm("+hostName+":"+portNumber+")::queryCustomerInfo(" + id + ", " + customerID + ") failed--customer doesn't exist" );
-				return "";
-			}
-
-			int _j = (i != 0? 1 : 0);	//We want to include the customers information from one of the bills in the return bill
-			String[] tmp = ((String) bills[i]).split("\n");
-			for (int j = _j; j < tmp.length; j++) {
+			String[] tmp = bills[i].split("\n");
+			for (int j = 1; j < tmp.length; j++) {
 				theBill += "\n" + tmp[j];
 			}
 		}
 
+		read_unlock(t);
+		set_timer(t);
+		
 		return theBill;
 	}
 
 	// customer functions
 	// new customer just returns a unique customer identifier
-	public int newCustomer(int id)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::newCustomer(" + id + ") called" );
+	public int newCustomer(int tid) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		Trace.info("MiddlewareRm()::newCustomer() called" );
 		// Generate a globally unique ID for the new customer
-		int cid = Integer.parseInt( String.valueOf(id) +
+		int cid = Integer.parseInt( String.valueOf(tid) +
 				String.valueOf(Calendar.getInstance().get(Calendar.MILLISECOND)) +
 				String.valueOf( Math.round( Math.random() * 100 + 1 )));
 
-		synchronized(flightsRM) {
-			flightsRM.newCustomer(id, cid);
-		}
-		synchronized(hotelsRM) {
-			hotelsRM.newCustomer(id, cid);
-		}
-		synchronized(carsRM) {
-			carsRM.newCustomer(id, cid);
+		add_rm(t, this.carsRM);
+		add_rm(t, this.flightsRM);
+		add_rm(t, this.hotelsRM);
+		
+		int ftid = t.rm_table.get(this.flightsRM);
+		int ctid = t.rm_table.get(this.carsRM);
+		int htid = t.rm_table.get(this.hotelsRM);
+		
+		try {
+			flightsRM.newCustomer(ftid, cid);
+			hotelsRM.newCustomer(htid, cid);
+			carsRM.newCustomer(ctid, cid);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "newCustomer failed.");
 		}
 
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::newCustomer(" + cid + ") returns ID=" + cid );
+		Trace.info("MiddlewareRm()::newCustomer(" + cid + ") returns ID=" + cid );
+		
+		read_unlock(t);
+		set_timer(t);
+		
 		return cid;
 	}
 
-	public void newCustomer(int id, int cid )
-			throws RemoteException {
-	
-		synchronized(flightsRM) {
-			if (!flightsRM.newCustomer(id, cid)) {
-				return false;
-			}
+	public void newCustomer(int tid, int cid ) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		Trace.info("MiddlewareRm()::newCustomer(" + cid + ") called" );
+
+		add_rm(t, this.carsRM);
+		add_rm(t, this.flightsRM);
+		add_rm(t, this.hotelsRM);
+		
+		int ftid = t.rm_table.get(this.flightsRM);
+		int ctid = t.rm_table.get(this.carsRM);
+		int htid = t.rm_table.get(this.hotelsRM);
+		
+		try {
+			flightsRM.newCustomer(ftid, cid);
+			hotelsRM.newCustomer(htid, cid);
+			carsRM.newCustomer(ctid, cid);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "newCustomer failed.");
 		}
-		synchronized(hotelsRM) {
-			if(!hotelsRM.newCustomer(id, cid)) {
-				return false;
-			}
-		}
-		synchronized(carsRM) {
-			if (!carsRM.newCustomer(id, cid)) {
-				return false;
-			}
-		}
-		return true;
+		
+		read_unlock(t);
+		set_timer(t);
 	}
 
 
 	// Deletes customer from the database. 
-	public void deleteCustomer(int id, int customerID)
-			throws RemoteException {
-		Trace.info("RM::deleteCustomer(" + id + ", " + customerID + ") called" );
+	public void deleteCustomer(int tid, int customerID) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		Trace.info("RM::deleteCustomer(" + tid + ", " + customerID + ") called" );
 
-		boolean result1 = false, result2 = false, result3 = false;
-		synchronized(flightsRM) {
-			result1 = flightsRM.deleteCustomer(id, customerID);
+		add_rm(t, this.carsRM);
+		add_rm(t, this.flightsRM);
+		add_rm(t, this.hotelsRM);
+		
+		int ftid = t.rm_table.get(this.flightsRM);
+		int ctid = t.rm_table.get(this.carsRM);
+		int htid = t.rm_table.get(this.hotelsRM);
+		
+		try {
+			flightsRM.deleteCustomer(ftid, customerID);
+			hotelsRM.deleteCustomer(htid, customerID);
+			carsRM.deleteCustomer(ctid, customerID);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "deleteCustomer failed.");
 		}
-		synchronized(hotelsRM) {
-			result2 = hotelsRM.deleteCustomer(id, customerID);
-		}
-		synchronized(carsRM) {
-			result3 = carsRM.deleteCustomer(id, customerID);
-		}
-
-		if (result1 && result2 && result3) {
-			return true;
-		} else {
-			return false;
-		}
+		
+		read_unlock(t);
+		set_timer(t);
 	}
 
-	// Frees flight reservation record. Flight reservation records help us make sure we
-	//  don't delete a flight if one or more customers are holding reservations
-	//	public boolean freeFlightReservation(int id, int flightNum)
-	//		throws RemoteException
-	//	{
-	//		Trace.info("RM::freeFlightReservations(" + id + ", " + flightNum + ") called" );
-	//		RMInteger numReservations = (RMInteger) readData( id, Flight.getNumReservationsKey(flightNum) );
-	//		if( numReservations != null ) {
-	//			numReservations = new RMInteger( Math.max( 0, numReservations.getValue()-1) );
-	//		} // if
-	//		writeData(id, Flight.getNumReservationsKey(flightNum), numReservations );
-	//		Trace.info("RM::freeFlightReservations(" + id + ", " + flightNum + ") succeeded, this flight now has "
-	//				+ numReservations + " reservations" );
-	//		return true;
-	//	}
-	//	
-
 	// Adds car reservation to this customer. 
-	public void reserveCar(int id, int customerID, String location)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::reserveCar(" + id + ", " + customerID + ", " + location + ") called" );
+	public void reserveCar(int tid, int customerID, String location) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		Trace.info("MiddlewareRm()::reserveCar(" + tid + ", " + customerID + ", " + location + ") called" );
 
-		boolean success;
-		synchronized(carsRM) {
-			success = carsRM.reserveCar(id, customerID, location);
+		add_rm(t, this.carsRM);
+		int rmtid = t.rm_table.get(this.carsRM);
+		
+		try {
+			carsRM.reserveCar(rmtid, customerID, location);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "reserveCar failed.");
 		}
-		return success;
+		
+		read_unlock(t);
+		set_timer(t);
 	}
 
 	// Adds room reservation to this customer. 
-	public void reserveRoom(int id, int customerID, String location)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::reserveRoom(" + id + ", " + customerID + ", " + location + ") called" );
+	public void reserveRoom(int tid, int customerID, String location) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		Trace.info("MiddlewareRm()::reserveRoom(" + tid + ", " + customerID + ", " + location + ") called" );
 
-		boolean success;
-		synchronized(hotelsRM) {
-			success = hotelsRM.reserveCar(id, customerID, location);
+		MiddlewareTransaction t = read_lock(tid);
+		
+		add_rm(t, this.hotelsRM);
+		int rmtid = t.rm_table.get(this.hotelsRM);
+		
+		try {
+			hotelsRM.reserveCar(rmtid, customerID, location);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "reserveRoom failed.");
 		}
-		return success;
+		
+		read_unlock(t);
+		set_timer(t);
 	}
 
 	// Adds flight reservation to this customer.  
-	public void reserveFlight(int id, int customerID, int flightNum)
-			throws RemoteException {
-		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::reserveFlight(" + id + ", " + customerID + ", " + flightNum + ") called" );
+	public void reserveFlight(int tid, int customerID, int flightNum) throws RemoteException,
+		InvalidTransactionNumException, TransactionAbortedException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		
+		add_rm(t, this.flightsRM);
+		int rmtid = t.rm_table.get(this.flightsRM);
+		
+		Trace.info("MiddlewareRm()::reserveFlight(" + tid + ", " + customerID + ", " + flightNum + ") called" );
 
-		boolean success;
-		synchronized(flightsRM) {
-			success = flightsRM.reserveFlight(id, customerID, flightNum);
+		try {
+			flightsRM.reserveFlight(rmtid, customerID, flightNum);
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "reserveFlight failed.");
 		}
-		return success;
+		
+		read_unlock(t);
+		set_timer(t);
 	}
 
 	/* reserve an itinerary */ 
-/*
-	public void itinerary(int id,int customer,Vector<Integer> flightNumbers,String location,boolean Car,boolean Room)
-			throws RemoteException {    	
-		String traceStr = "MiddlewareRm("+hostName+":"+portNumber+")::itinerary(" + id + ", " + customer + ", < ";
+
+	public void itinerary(int tid,int customer,Vector<Integer> flightNumbers,String location,boolean car,boolean room)
+		throws RemoteException, InvalidTransactionNumException, TransactionAbortedException
+	{    
+		MiddlewareTransaction t = read_lock(tid);
+		
+		String traceStr = "MiddlewareRm()::itinerary(" + tid + ", " + customer + ", < ";
 
 		for(int i : flightNumbers) {
 			traceStr += "("+ Integer.toString(i) + "), ";
 		}
-		traceStr += ">, " + location + ", " + Car + ", " + Room + ") called";
+		
+		traceStr += ">, " + location + ", " + car + ", " + room + ") called";
 		Trace.info(traceStr);
 
-		for(int i : flightNumbers) {
-			synchronized(flightsRM) {
-				int seats = flightsRM.queryFlight(id, i);
-				if(seats == 0) {
-					return false;
-				}
+		add_rm(t, this.flightsRM);
+		int ftid = t.rm_table.get(this.flightsRM);
+		
+		try {
+			for (int i : flightNumbers) {
+					flightsRM.reserveFlight(ftid, customer, i);		
+			}
+			
+			if (car) {
+				add_rm(t, this.carsRM);
+				int ctid = t.rm_table.get(this.carsRM);
+				carsRM.reserveCar(ctid, customer, location);	
+			}
+	
+			if (room) {
+				add_rm(t, this.hotelsRM);
+				int htid = t.rm_table.get(this.hotelsRM);
+				hotelsRM.reserveRoom(htid, customer, location);	
+			}
+			
+		} catch (TransactionAbortedException e) {
+			read_unlock(t);
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "itinerary failed.");
+		}
+		
+		read_unlock(t);
+		set_timer(t);
+	}
+
+	@Override
+	public int startTransaction() throws RemoteException 
+	{
+		final int tid;
+		synchronized(this.t_count) {
+			tid = this.t_count++;
+		}
+		
+		final MiddlewareTransaction t = new MiddlewareTransaction(tid);
+		
+		// start timer to clean up transactions from crashed clients
+		set_timer(t);
+
+		this.t_table.put(tid, t);
+		
+		return tid;
+	}
+
+	@Override
+	public boolean commitTransaction(int tid) throws RemoteException, InvalidTransactionNumException 
+	{		
+			MiddlewareTransaction t = write_lock(tid);
+			
+			for (ResourceManager rm : t.rm_table.keySet()) {
+				rm.commitTransaction(t.rm_table.get(rm));
+			}
+			
+			write_unlock(t);
+			
+			return true;
+		
+	}
+
+	@Override
+	public boolean abortTransaction(int tid) throws RemoteException, InvalidTransactionNumException 
+	{
+		MiddlewareTransaction t = write_lock(tid);
+			
+		for (ResourceManager rm : t.rm_table.keySet()) {
+				
+			try {
+				rm.abortTransaction(t.rm_table.get(rm));
+			} catch (InvalidTransactionNumException e) {
+				// a transaction may have aborted already, squelch
 			}
 		}
-
-		for (int i : flightNumbers) {
-			synchronized(flightsRM) {
-				boolean success = flightsRM.reserveFlight(id, customer, i);
-				if(!success) {
-					return false;
-				}
-			}
-		}
-
-		if(Car) {
-			synchronized(carsRM) {
-				boolean success = carsRM.reserveCar(id, customer, location);
-				if(!success) {
-					return false;
-				}
-			}
-		}
-
-		if(Room) {
-			synchronized(hotelsRM) {
-				boolean success = hotelsRM.reserveRoom(id, customer, location);
-				if(!success) {
-					return false;
-				}
-			}	
-		}
-
+			
+		write_unlock(t);
+		
 		return true;
 	}
+	
+	private void set_timer(MiddlewareTransaction t)
+	{
+		final int final_tid = t.tid;
+		final Timer timer = new Timer(true); 
+		
+		TimerTask timeout = new TimerTask()    
+		{
+			public void run()
+			{
+				try {
+					timer.cancel();
+					abortTransaction(final_tid);
+				} catch (InvalidTransactionNumException e) {
+					e.printStackTrace();
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
+			}
+		};
+		
+		timer.schedule(timeout, MiddlewareTransaction.T_TIMEOUT, MiddlewareTransaction.T_TIMEOUT);
+		t.timer = timer;
+	}
+	
+	private MiddlewareTransaction read_lock(int tid) throws InvalidTransactionNumException
+	{
+		synchronized(this.t_table) {
+			MiddlewareTransaction t = this.t_table.get(tid);
+			if (t == null) throw new InvalidTransactionNumException(tid);
+			t.lock.readLock().lock();
+			t.timer.cancel();
+			return t;
+		}
+	}
+	
+	private void read_unlock(MiddlewareTransaction t)
+	{
+		t.lock.readLock().unlock();
+	}
+	
+	private MiddlewareTransaction write_lock(int tid) throws InvalidTransactionNumException
+	{
+		synchronized(this.t_table) {
+			MiddlewareTransaction t = this.t_table.remove(tid);
+			if (t == null) throw new InvalidTransactionNumException(tid);
+			t.lock.writeLock().lock();
+			t.timer.cancel();
+			return t;
+		}
+	}
+	
+	private void write_unlock(MiddlewareTransaction t)
+	{
+		t.lock.writeLock().unlock();
+	}
+	
+	private void add_rm(MiddlewareTransaction t, ResourceManager rm)
+	{
+		if(t.rm_table.get(rm) == null) {
+			try {
+				t.rm_table.put(rm, rm.startTransaction());
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 }
-*/
+
 
