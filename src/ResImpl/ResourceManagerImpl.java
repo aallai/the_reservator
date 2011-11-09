@@ -5,10 +5,11 @@
 package ResImpl;
 
 import ResInterface.*;
+import LockManager.LockManager;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-
+import LockManager.DeadlockException;
 import java.util.*;
 import java.rmi.*;
 import java.rmi.registry.Registry;
@@ -23,7 +24,8 @@ public class ResourceManagerImpl
 	private Integer transaction_num = 0;
 	
 	protected RMHashtable m_itemHT = new RMHashtable();
-	Hashtable<Integer, RMTransaction> t_table = new Hashtable<Integer, RMTransaction>();
+	private LockManager lm = new LockManager();
+	private Hashtable<Integer, RMTransaction> t_table = new Hashtable<Integer, RMTransaction>();
     
     public ResourceManagerImpl() throws RemoteException {
     }
@@ -84,16 +86,21 @@ public class ResourceManagerImpl
     
     
 	// Reads a data item
-	protected RMItem readData(String key )
+	protected RMItem readData(int tid, String key ) throws DeadlockException
 	{
+		lm.Lock(tid, key, LockManager.READ);
+		
 		synchronized(m_itemHT){
 			return (RMItem) m_itemHT.get(key);
 		}
 	}
 
 	// Writes a data item
-	private void writeData(String key, RMItem value )
+	private void writeData(int tid, String key, RMItem value ) throws DeadlockException
 	{
+		
+		lm.Lock(tid, key, LockManager.WRITE);
+		
 		System.out.println("Writing " + key);
 		
 		synchronized(m_itemHT){
@@ -102,9 +109,9 @@ public class ResourceManagerImpl
 	}
 	
 	// Remove the item out of storage
-	protected RMItem removeData(String key){
-		
-		System.out.println("Removing " + key);
+	protected RMItem removeData(int tid, String key) throws DeadlockException
+	{		
+		lm.Lock(tid, key, LockManager.WRITE);
 		
 		synchronized(m_itemHT){
 			return (RMItem)m_itemHT.remove(key);
@@ -113,28 +120,22 @@ public class ResourceManagerImpl
 	
 	
 	// deletes the entire item
-	protected boolean deleteItem(int tid, String key)
-	{
-		if (!check_tid(tid)) {
-			return false;
-		}
-		
+	protected boolean deleteItem(int tid, String key) throws DeadlockException
+	{	
 		Trace.info("RM::deleteItem(" + tid + ", " + key + ") called" );
-		ReservableItem curObj = (ReservableItem) readData( key );
+		ReservableItem curObj = (ReservableItem) readData(tid, key );
 		// Check if there is such an item in the storage
 		if( curObj == null ) {
 			Trace.warn("RM::deleteItem(" + tid + ", " + key + ") failed--item doesn't exist" );
 			return false;
 		} else {
 			if(curObj.getReserved()==0){
-				removeData(curObj.getKey());
+				removeData(tid, curObj.getKey());
 				Trace.info("RM::deleteItem(" + tid + ", " + key + ") item deleted" );
 				
 				// add undo
-				if (!addWrite(tid, curObj.getKey(), curObj)) {
-					return false;
-				}
-				
+				addWrite(tid, curObj.getKey(), curObj);
+					
 				return true;
 			}
 			else{
@@ -146,46 +147,44 @@ public class ResourceManagerImpl
 	
 
 	// query the number of available seats/rooms/cars
-	protected int queryNum(int id, String key) {
-		Trace.info("RM::queryNum(" + id + ", " + key + ") called" );
-		ReservableItem curObj = (ReservableItem) readData( key);
+	protected int queryNum(int tid, String key) throws DeadlockException 
+	{
+		Trace.info("RM::queryNum(" + tid + ", " + key + ") called" );
+		ReservableItem curObj = (ReservableItem) readData(tid, key);
 		int value = 0;  
 		if( curObj != null ) {
 			value = curObj.getCount();
 		} // else
-		Trace.info("RM::queryNum(" + id + ", " + key + ") returns count=" + value);
+		Trace.info("RM::queryNum(" + tid + ", " + key + ") returns count=" + value);
 		return value;
 	}	
 	
 	// query the price of an item
-	protected int queryPrice(int id, String key){
-		Trace.info("RM::queryCarsPrice(" + id + ", " + key + ") called" );
-		ReservableItem curObj = (ReservableItem) readData(key);
+	protected int queryPrice(int tid, String key) throws DeadlockException
+	{
+		Trace.info("RM::queryCarsPrice(" + tid + ", " + key + ") called" );
+		ReservableItem curObj = (ReservableItem) readData(tid, key);
 		int value = 0; 
 		if( curObj != null ) {
 			value = curObj.getPrice();
 		} // else
-		Trace.info("RM::queryCarsPrice(" + id + ", " + key + ") returns cost=$" + value );
+		Trace.info("RM::queryCarsPrice(" + tid + ", " + key + ") returns cost=$" + value );
 		return value;		
 	}
 	
 	// reserve an item
-	protected boolean reserveItem(int tid, int customerID, String key, String location){
-
-		if (!check_tid(tid)) {
-			return false;
-		}
-		
+	protected boolean reserveItem(int tid, int customerID, String key, String location) throws DeadlockException
+	{		
 		Trace.info("RM::reserveItem( " + tid + ", customer=" + customerID + ", " +key+ ", "+location+" ) called" );		
 		// Read customer object if it exists (and read lock it)
-		Customer cust = (Customer) readData(Customer.getKey(customerID) );		
+		Customer cust = (Customer) readData(tid, Customer.getKey(customerID) );		
 		if( cust == null ) {
 			Trace.warn("RM::reserveItem( " + tid + ", " + customerID + ", " + key + ", "+location+")  failed--customer doesn't exist" );
 			return false;
 		} 
 		
 		// check if the item is available
-		ReservableItem item = (ReservableItem)readData(key);
+		ReservableItem item = (ReservableItem)readData(tid, key);
 		if(item==null){
 			Trace.warn("RM::reserveItem( " + tid + ", " + customerID + ", " + key+", " +location+") failed--item doesn't exist" );
 			return false;
@@ -196,17 +195,14 @@ public class ResourceManagerImpl
 			Customer old = new Customer(cust.getID());
 			old.m_Reservations = (RMHashtable) cust.getReservations().clone();
 			
-			System.out.println("Reservations >>>");
-			old.m_Reservations.toString();
 			System.out.println();
 			
 			cust.reserve( key, location, item.getPrice());		
-			writeData(cust.getKey(), cust );
+			writeData(tid, cust.getKey(), cust );
 			
 			// add undo info
-			if (!addWrite(tid, cust.getKey(), old)) {
-				return false;
-			}
+			addWrite(tid, cust.getKey(), old);
+				
 			
 			ReservableItem old_item = item.copy(); 
 			
@@ -214,9 +210,8 @@ public class ResourceManagerImpl
 			item.setCount(item.getCount() - 1);
 			item.setReserved(item.getReserved()+1);
 			
-			if (!addWrite(tid, key, old_item)) {
-				return false;
-			}
+			addWrite(tid, key, old_item);
+			
 			
 			Trace.info("RM::reserveItem( " + tid + ", " + customerID + ", " + key + ", " +location+") succeeded" );
 			return true;
@@ -225,154 +220,211 @@ public class ResourceManagerImpl
 	
 	// Create a new flight, or add seats to existing flight
 	//  NOTE: if flightPrice <= 0 and the flight already exists, it maintains its current price
-	public boolean addFlight(int tid, int flightNum, int flightSeats, int flightPrice) throws RemoteException
+	public void addFlight(int tid, int flightNum, int flightSeats, int flightPrice) throws RemoteException, 
+		TransactionAbortedException, InvalidTransactionNumException
 	{	
 		if (!check_tid(tid)) {
-			return false;
+			throw new InvalidTransactionNumException(tid);
 		}
 		
-		Flight curObj = (Flight) readData(Flight.getKey(flightNum) );
+		try {
 		
-		if( curObj == null ) {
-			// doesn't exist...add it
-			Flight newObj = new Flight( flightNum, flightSeats, flightPrice );
-			writeData(newObj.getKey(), newObj );
+			Flight curObj = (Flight) readData(tid, Flight.getKey(flightNum) );
+		
+			if( curObj == null ) {
+				// doesn't exist...add it
+				Flight newObj = new Flight( flightNum, flightSeats, flightPrice );
+				writeData(tid, newObj.getKey(), newObj );
 			
-			if (!addRemove(tid, newObj.getKey())) {
-				return false;
-			}
+				addRemove(tid, newObj.getKey());
+					
 			
-			Trace.info("RM::addFlight (" + tid + ", " + flightNum + ", " + flightSeats + ", " + flightPrice + ") succeeded");
+				Trace.info("RM::addFlight (" + tid + ", " + flightNum + ", " + flightSeats + ", " + flightPrice + ") succeeded");
 			
-		} else {
-			Flight old = (Flight) curObj.copy();
+			} else {
+				Flight old = (Flight) curObj.copy();
 
-			// add seats to existing flight and update the price...
-			curObj.setCount( curObj.getCount() + flightSeats );
+				// add seats to existing flight and update the price...
+				curObj.setCount( curObj.getCount() + flightSeats );
 			
-			if ( flightPrice > 0 ) {
-				curObj.setPrice( flightPrice );
-			} // if
-			writeData( curObj.getKey(), curObj );
+				if ( flightPrice > 0 ) {
+					curObj.setPrice( flightPrice );
+				} // if
+				writeData(tid, curObj.getKey(), curObj );
 			
-			if (!addWrite(tid, curObj.getKey(), old)) {
-				return false;
-			}
-			
-		} // else
-		return(true);
+				addWrite(tid, curObj.getKey(), old);
+	
+			} // else
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, addFlight operation for transaction " + tid);
+		}
 	}
 
 
 	
-	public boolean deleteFlight(int tid, int flightNum) throws RemoteException
-	{	
-		return deleteItem(tid, Flight.getKey(flightNum));
+	public void deleteFlight(int tid, int flightNum) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException	
+	{
+		if (!check_tid(tid)) {
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		try {
+			if(!deleteItem(tid, Flight.getKey(flightNum))) {
+				abortTransaction(tid);
+				throw new TransactionAbortedException(tid, "deleteFlight() : delete failed.");
+			}
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, deleteFlight operation for transaction " + tid);
+		}
 	}
 
 	// Create a new room location or add rooms to an existing location
 	//  NOTE: if price <= 0 and the room location already exists, it maintains its current price
-	public boolean addRooms(int tid, String location, int count, int price) throws RemoteException
+	public void addRooms(int tid, String location, int count, int price) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
 		if (!check_tid(tid)) {
-			return false;
+			throw new InvalidTransactionNumException(tid);
 		}
 		
-		Trace.info("RM::addRooms(" + tid + ", " + location + ", " + count + ", $" + price + ") called" );
-		Hotel curObj = (Hotel) readData(Hotel.getKey(location) );
-		if( curObj == null ) {
-			// doesn't exist...add it
-			Hotel newObj = new Hotel( location, count, price );
-			writeData( newObj.getKey(), newObj );
-			
-			// add undo
-			if (!addRemove(tid, newObj.getKey())) {
-				return false;
+		try {
+		
+			Trace.info("RM::addRooms(" + tid + ", " + location + ", " + count + ", $" + price + ") called" );
+			Hotel curObj = (Hotel) readData(tid, Hotel.getKey(location) );
+			if( curObj == null ) {
+				// doesn't exist...add it
+				Hotel newObj = new Hotel( location, count, price );
+				writeData(tid, newObj.getKey(), newObj );
+				
+				// add undo
+				addRemove(tid, newObj.getKey());
+				
+				Trace.info("RM::addRooms(" + tid + ") created new room location " + location + ", count=" + count + ", price=$" + price );
+			} else {
+				
+				Hotel old = (Hotel) curObj.copy();
+				
+				// add count to existing object and update price...
+				curObj.setCount( curObj.getCount() + count );
+				if( price > 0 ) {
+					curObj.setPrice( price );
+				} // if
+				writeData(tid, curObj.getKey(), curObj );
+				
+				addWrite(tid, curObj.getKey(), old);
+	 			
+				Trace.info("RM::addRooms(" + tid + ") modified existing location " + location + ", count=" + curObj.getCount() + ", price=$" + price );
 			}
-			
-			Trace.info("RM::addRooms(" + tid + ") created new room location " + location + ", count=" + count + ", price=$" + price );
-		} else {
-			
-			Hotel old = (Hotel) curObj.copy();
-			
-			// add count to existing object and update price...
-			curObj.setCount( curObj.getCount() + count );
-			if( price > 0 ) {
-				curObj.setPrice( price );
-			} // if
-			writeData( curObj.getKey(), curObj );
-			
-			if (!addWrite(tid, curObj.getKey(), old)) {
-				return false;
-			}
- 			
-			Trace.info("RM::addRooms(" + tid + ") modified existing location " + location + ", count=" + curObj.getCount() + ", price=$" + price );
-		} // else
-		return(true);
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, addRooms operation for transaction " + tid);
+		}
+		 // else
 	}
 
 	// Delete rooms from a location
-	public boolean deleteRooms(int id, String location)
-		throws RemoteException
+	public void deleteRooms(int tid, String location) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
-		return deleteItem(id, Hotel.getKey(location));
+		if (!check_tid(tid)) {
+			throw new InvalidTransactionNumException(tid);
+		}
 		
+		try {
+			if (!deleteItem(tid, Hotel.getKey(location))) {
+				abortTransaction(tid);
+				throw new TransactionAbortedException(tid, "deleteRooms() : delete failed.");
+			}
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, deleteRooms operation for transaction " + tid);
+		}
 	}
 
 	// Create a new car location or add cars to an existing location
 	//  NOTE: if price <= 0 and the location already exists, it maintains its current price
-	public boolean addCars(int tid, String location, int count, int price) throws RemoteException
+	public void addCars(int tid, String location, int count, int price) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
 		if (!check_tid(tid)) {
-			return false;
+			throw new InvalidTransactionNumException(tid);
 		}
 		
-		Trace.info("RM::addCars(" + tid + ", " + location + ", " + count + ", $" + price + ") called" );
-		Car curObj = (Car) readData( Car.getKey(location) );
-		if( curObj == null ) {
-			// car location doesn't exist...add it
-			Car newObj = new Car( location, count, price );
-			writeData( newObj.getKey(), newObj );
-			
-			// undo
-			if (!addRemove(tid, newObj.getKey())) {
-				return false;
-			}
-			
-			Trace.info("RM::addCars(" + tid + ") created new location " + location + ", count=" + count + ", price=$" + price );
-		} else {
-			Car old = (Car) curObj.copy();
-			
-			// add count to existing car location and update price...
-			curObj.setCount( curObj.getCount() + count );
-			if( price > 0 ) {
-				curObj.setPrice( price );
-			} // if
-			writeData( curObj.getKey(), curObj );
-			
-			// undo
-			if (!addWrite(tid, curObj.getKey(), old)) {
-				return false;
-			}
-			
-			Trace.info("RM::addCars(" + tid + ") modified existing location " + location + ", count=" + curObj.getCount() + ", price=$" + price );
-		} // else
-		return(true);
+		try {
+			Trace.info("RM::addCars(" + tid + ", " + location + ", " + count + ", $" + price + ") called" );
+			Car curObj = (Car) readData(tid, Car.getKey(location) );
+			if( curObj == null ) {
+				// car location doesn't exist...add it
+				Car newObj = new Car( location, count, price );
+				writeData(tid, newObj.getKey(), newObj );
+				
+				// undo
+				addRemove(tid, newObj.getKey());
+				
+				Trace.info("RM::addCars(" + tid + ") created new location " + location + ", count=" + count + ", price=$" + price );
+			} else {
+				Car old = (Car) curObj.copy();
+				
+				// add count to existing car location and update price...
+				curObj.setCount( curObj.getCount() + count );
+				if( price > 0 ) {
+					curObj.setPrice( price );
+				} // if
+				writeData(tid, curObj.getKey(), curObj );
+				
+				// undo
+				addWrite(tid, curObj.getKey(), old);
+				
+				Trace.info("RM::addCars(" + tid + ") modified existing location " + location + ", count=" + curObj.getCount() + ", price=$" + price );
+			} // else
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, addCars operation for transaction " + tid);
+		}
 	}
 
 
 	// Delete cars from a location
-	public boolean deleteCars(int id, String location) throws RemoteException
+	public void deleteCars(int tid, String location) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
-		return deleteItem(id, Car.getKey(location));
+		if (!check_tid(tid)) {
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		try {
+			if (!deleteItem(tid, Car.getKey(location))) {
+				abortTransaction(tid);
+				throw new TransactionAbortedException(tid, "deleteCars() : delete failed.");
+			}
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, deleteCars operation for transaction " + tid);
+		}
 	}
 
 
 
 	// Returns the number of empty seats on this flight
-	public int queryFlight(int id, int flightNum) throws RemoteException
+	public int queryFlight(int tid, int flightNum) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
-		return queryNum(id, Flight.getKey(flightNum));
+		if (!check_tid(tid)) {
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		int ret = 0;
+		try {
+			ret = queryNum(tid, Flight.getKey(flightNum));
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, queryFlight operation for transaction " + tid);
+		}
+		
+		return ret;
 	}
 
 	// Returns the number of reservations for this flight. 
@@ -390,168 +442,277 @@ public class ResourceManagerImpl
 
 
 	// Returns price of this flight
-	public int queryFlightPrice(int id, int flightNum ) throws RemoteException
+	public int queryFlightPrice(int tid, int flightNum ) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
-		return queryPrice(id, Flight.getKey(flightNum));
+		if (!check_tid(tid)) {
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		int ret = 0;
+		try {
+			ret = queryPrice(tid, Flight.getKey(flightNum));
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, queryFlightPrice operation for transaction " + tid);
+		}
+		return ret;
 	}
 
 
 	// Returns the number of rooms available at a location
-	public int queryRooms(int id, String location) throws RemoteException
+	public int queryRooms(int tid, String location) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
-		return queryNum(id, Hotel.getKey(location));
+		if (!check_tid(tid)) {
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		int ret = 0;
+		
+		try {
+			ret = queryNum(tid, Hotel.getKey(location));
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, queryRooms operation for transaction " + tid);
+		}
+		
+		return ret;
 	}
 
 
 	
 	
 	// Returns room price at this location
-	public int queryRoomsPrice(int id, String location) throws RemoteException
+	public int queryRoomsPrice(int tid, String location) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
-		return queryPrice(id, Hotel.getKey(location));
+		if (!check_tid(tid)) {
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		int ret = 0;
+		try {
+			ret = queryPrice(tid, Hotel.getKey(location));
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, queryRooms operation for transaction " + tid);
+		}
+		
+		return ret;
 	}
 
 
 	// Returns the number of cars available at a location
-	public int queryCars(int id, String location) throws RemoteException
+	public int queryCars(int tid, String location) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
-		return queryNum(id, Car.getKey(location));
+		if (!check_tid(tid)) {
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		int ret = 0;
+		try {
+			ret =  queryNum(tid, Car.getKey(location));
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, queryCars operation for transaction " + tid);
+		}
+		
+		return ret;
 	}
 
 
 	// Returns price of cars at this location
-	public int queryCarsPrice(int id, String location) throws RemoteException
+	public int queryCarsPrice(int tid, String location) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
-		return queryPrice(id, Car.getKey(location));
+		if (!check_tid(tid)) {
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		int ret = 0;
+		try {
+			ret = queryPrice(tid, Car.getKey(location));
+		} catch  (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, queryCarsPprice operation for transaction " + tid);
+		}
+		
+		return ret;
 	}
 
 	// Returns data structure containing customer reservation info. Returns null if the
 	//  customer doesn't exist. Returns empty RMHashtable if customer exists but has no
 	//  reservations.
-	public RMHashtable getCustomerReservations(int id, int customerID) throws RemoteException
+	public RMHashtable getCustomerReservations(int tid, int customerID) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
-		Trace.info("RM::getCustomerReservations(" + id + ", " + customerID + ") called" );
-		Customer cust = (Customer) readData( Customer.getKey(customerID) );
-		if( cust == null ) {
-			Trace.warn("RM::getCustomerReservations failed(" + id + ", " + customerID + ") failed--customer doesn't exist" );
-			return null;
-		} else {
-			return cust.getReservations();
-		} // if
+		if (!check_tid(tid)) {
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		try {
+			Trace.info("RM::getCustomerReservations(" + tid + ", " + customerID + ") called" );
+			Customer cust = (Customer) readData(tid, Customer.getKey(customerID) );
+			if( cust == null ) {
+
+				Trace.warn("RM::getCustomerReservations failed(" + tid + ", " + customerID + ") failed--customer doesn't exist" );
+				
+				abortTransaction(tid);
+				throw new TransactionAbortedException(tid, "getCustomerReservations failed for customer " + customerID + ", customer doesn't exist.");
+				
+			} else {
+				return cust.getReservations();
+			}
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, getCustomerReservations operation for transaction " + tid);
+		}
 	}
 
 	// return a bill
-	public String queryCustomerInfo(int id, int customerID)
-		throws RemoteException
+	public String queryCustomerInfo(int tid, int customerID) throws RemoteException, 
+		TransactionAbortedException, InvalidTransactionNumException
 	{
-		Trace.info("RM::queryCustomerInfo(" + id + ", " + customerID + ") called" );
-		Customer cust = (Customer) readData( Customer.getKey(customerID) );
-		if( cust == null ) {
-			Trace.warn("RM::queryCustomerInfo(" + id + ", " + customerID + ") failed--customer doesn't exist" );
-			return "";   // NOTE: don't change this--WC counts on this value indicating a customer does not exist...
-		} else {
-				String s = cust.printBill();
-				Trace.info("RM::queryCustomerInfo(" + id + ", " + customerID + "), bill follows..." );
-				System.out.println( s );
-				return s;
-		} // if
+		if (!check_tid(tid)) {
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		try {
+			Trace.info("RM::queryCustomerInfo(" + tid + ", " + customerID + ") called" );
+			Customer cust = (Customer) readData(tid, Customer.getKey(customerID) );
+			if( cust == null ) {
+				Trace.warn("RM::queryCustomerInfo(" + tid + ", " + customerID + ") failed--customer doesn't exist" );
+				
+				abortTransaction(tid);
+				throw new TransactionAbortedException(tid, "getCustomerReservations failed for customer " + customerID + ", customer doesn't exist.");
+				
+			} else {
+					String s = cust.printBill();
+					Trace.info("RM::queryCustomerInfo(" + tid + ", " + customerID + "), bill follows..." );
+					System.out.println( s );
+					return s;
+			} // if
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, getCustomerReservations operation for transaction " + tid);
+		}
 	}
 
   // customer functions
   // new customer just returns a unique customer identifier
 	// -1 indicates error (invalid tid)
-	public int newCustomer(int tid) throws RemoteException
+	public int newCustomer(int tid) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
 		if (!check_tid(tid)) {
-			return -1;
+			throw new InvalidTransactionNumException(tid);
 		}
 		
-		Trace.info("INFO: RM::newCustomer(" + tid + ") called" );
-		// Generate a globally unique ID for the new customer
-		int cid = Integer.parseInt( String.valueOf(tid) +
-								String.valueOf(Calendar.getInstance().get(Calendar.MILLISECOND)) +
-								String.valueOf( Math.round( Math.random() * 100 + 1 )));
-
-		Customer cust = new Customer( cid );
-		writeData( cust.getKey(), cust );
-		
-		// add undo
-		if (!addRemove(tid, cust.getKey())) {
-			return -1;
+		try {
+			Trace.info("INFO: RM::newCustomer(" + tid + ") called" );
+			// Generate a globally unique ID for the new customer
+			int cid = Integer.parseInt( String.valueOf(tid) +
+									String.valueOf(Calendar.getInstance().get(Calendar.MILLISECOND)) +
+									String.valueOf( Math.round( Math.random() * 100 + 1 )));
+	
+			Customer cust = new Customer( cid );
+			writeData(tid, cust.getKey(), cust );
+			
+			// add undo
+			addRemove(tid, cust.getKey());
+			
+			Trace.info("RM::newCustomer(" + cid + ") returns ID=" + cid );
+			return cid;
+			
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, newCustomer operation for transaction " + tid);
 		}
-		
-		Trace.info("RM::newCustomer(" + cid + ") returns ID=" + cid );
-		return cid;
+			
 	}
 
 	// I opted to pass in customerID instead. This makes testing easier
-	public boolean newCustomer(int tid, int customerID ) throws RemoteException
+	public void newCustomer(int tid, int customerID ) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
 		if (!check_tid(tid)) {
-			return false;
+			throw new InvalidTransactionNumException(tid);
 		}
 		
-		Trace.info("INFO: RM::newCustomer(" + tid + ", " + customerID + ") called" );
-		Customer cust = (Customer) readData( Customer.getKey(customerID) );
-		if( cust == null ) {
-			cust = new Customer(customerID);
-			writeData( cust.getKey(), cust );
+		try {
+			Trace.info("INFO: RM::newCustomer(" + tid + ", " + customerID + ") called" );
+			Customer cust = (Customer) readData(tid, Customer.getKey(customerID) );
+			if( cust == null ) {
+				cust = new Customer(customerID);
+				writeData(tid, cust.getKey(), cust );
+				
+				addRemove(tid, cust.getKey());
+				
+				Trace.info("INFO: RM::newCustomer(" + tid + ", " + customerID + ") created a new customer" );
 			
-			if (!addRemove(tid, cust.getKey())) {
-				return false;
-			}
-			
-			Trace.info("INFO: RM::newCustomer(" + tid + ", " + customerID + ") created a new customer" );
-			return true;
-		} else {
-			Trace.info("INFO: RM::newCustomer(" + tid + ", " + customerID + ") failed--customer already exists");
-			return false;
-		} // else
+			} else {
+				Trace.info("INFO: RM::newCustomer(" + tid + ", " + customerID + ") failed--customer already exists");
+				
+				abortTransaction(tid);
+				throw new TransactionAbortedException(tid, "Transaction " + tid + " aborted, newCustomer() : customer already exists.");
+				
+			} // else
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, newCustomer operation for transaction " + tid);
+		}
 	}
 
 
 	// Deletes customer from the database. 
-	public boolean deleteCustomer(int tid, int customerID) throws RemoteException
+	public void deleteCustomer(int tid, int customerID) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
 		if (!check_tid(tid)) {
-			return false;
+			throw new InvalidTransactionNumException(tid);
 		}
  		
-		Trace.info("RM::deleteCustomer(" + tid + ", " + customerID + ") called" );
-		Customer cust = (Customer) readData( Customer.getKey(customerID) );
-		if( cust == null ) {
-			Trace.warn("RM::deleteCustomer(" + tid + ", " + customerID + ") failed--customer doesn't exist" );
-			return false;
-		} else {			
-			// Increase the reserved numbers of all reservable items which the customer reserved. 
-			RMHashtable reservationHT = cust.getReservations();
-			for(Enumeration e = reservationHT.keys(); e.hasMoreElements();){		
-				String reservedkey = (String) (e.nextElement());
-				ReservedItem reserveditem = cust.getReservedItem(reservedkey);
-				Trace.info("RM::deleteCustomer(" + tid + ", " + customerID + ") has reserved " + reserveditem.getKey() + " " +  reserveditem.getCount() +  " times"  );
-				ReservableItem item  = (ReservableItem) readData(reserveditem.getKey());
-				Trace.info("RM::deleteCustomer(" + tid + ", " + customerID + ") has reserved " + reserveditem.getKey() + "which is reserved" +  item.getReserved() +  " times and is still available " + item.getCount() + " times"  );
-
-				ReservableItem old = item.copy();
-
-				item.setReserved(item.getReserved()-reserveditem.getCount());
-				item.setCount(item.getCount()+reserveditem.getCount());
+		try {
+			Trace.info("RM::deleteCustomer(" + tid + ", " + customerID + ") called" );
+			Customer cust = (Customer) readData(tid, Customer.getKey(customerID) );
+			if( cust == null ) {
+				Trace.warn("RM::deleteCustomer(" + tid + ", " + customerID + ") failed--customer doesn't exist" );
 				
-				if (!addWrite(tid, reserveditem.getKey(), old)) {
-					return false;
+				abortTransaction(tid);
+				throw new TransactionAbortedException(tid, "deleteCustomer() : customer doesn't exist.");
+				
+			} else {			
+				// Increase the reserved numbers of all reservable items which the customer reserved. 
+				RMHashtable reservationHT = cust.getReservations();
+				for(Enumeration e = reservationHT.keys(); e.hasMoreElements();){		
+					String reservedkey = (String) (e.nextElement());
+					ReservedItem reserveditem = cust.getReservedItem(reservedkey);
+					Trace.info("RM::deleteCustomer(" + tid + ", " + customerID + ") has reserved " + reserveditem.getKey() + " " +  reserveditem.getCount() +  " times"  );
+					ReservableItem item  = (ReservableItem) readData(tid, reserveditem.getKey());
+					Trace.info("RM::deleteCustomer(" + tid + ", " + customerID + ") has reserved " + reserveditem.getKey() + "which is reserved" +  item.getReserved() +  " times and is still available " + item.getCount() + " times"  );
+	
+					ReservableItem old = item.copy();
+	
+					item.setReserved(item.getReserved()-reserveditem.getCount());
+					item.setCount(item.getCount()+reserveditem.getCount());
+					
+					addWrite(tid, reserveditem.getKey(), old);
 				}
-			}
-			
-			// remove the customer from the storage
-			removeData(cust.getKey());
-			
-			if (!addWrite(tid, cust.getKey(), cust)) {
-				return false;
-			}
-			
-			Trace.info("RM::deleteCustomer(" + tid + ", " + customerID + ") succeeded" );
-			return true;
-		} // if
+				
+				// remove the customer from the storage
+				removeData(tid, cust.getKey());
+				
+				addWrite(tid, cust.getKey(), cust);
+				
+				Trace.info("RM::deleteCustomer(" + tid + ", " + customerID + ") succeeded" );
+				
+			} // if
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, deleteCustomer operation for transaction " + tid);
+		}
 	}
 
 
@@ -576,27 +737,71 @@ public class ResourceManagerImpl
 
 	
 	// Adds car reservation to this customer. 
-	public boolean reserveCar(int id, int customerID, String location) throws RemoteException
+	public void reserveCar(int tid, int customerID, String location) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
-		return reserveItem(id, customerID, Car.getKey(location), location);
+		if (!check_tid(tid)) {
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		try {
+			
+			if (!reserveItem(tid, customerID, Car.getKey(location), location)) {
+				abortTransaction(tid);
+				throw new TransactionAbortedException(tid, "reserveCar() : reservation failed.");
+			}
+			
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, reserveCar operation for transaction " + tid);
+		}
 	}
 
 
 	// Adds room reservation to this customer. 
-	public boolean reserveRoom(int id, int customerID, String location) throws RemoteException
+	public void reserveRoom(int tid, int customerID, String location) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
-		return reserveItem(id, customerID, Hotel.getKey(location), location);
+		if (!check_tid(tid)) {
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		try {
+		
+			if (!reserveItem(tid, customerID, Hotel.getKey(location), location)) {
+				abortTransaction(tid);
+				throw new TransactionAbortedException(tid, "reserveRoom() : reservation failed.");
+			}
+
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, reserveRoom operation for transaction " + tid);
+		}
 	}
 	// Adds flight reservation to this customer.  
-	public boolean reserveFlight(int id, int customerID, int flightNum) throws RemoteException
+	public void reserveFlight(int tid, int customerID, int flightNum) throws RemoteException,
+		TransactionAbortedException, InvalidTransactionNumException
 	{
-		return reserveItem(id, customerID, Flight.getKey(flightNum), String.valueOf(flightNum));
+		if (!check_tid(tid)) {
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		try {
+			if(!reserveItem(tid, customerID, Flight.getKey(flightNum), String.valueOf(flightNum))) {
+				abortTransaction(tid);
+				throw new TransactionAbortedException(tid, "reserveFlight() : reservation failed.");
+			}
+		} catch (DeadlockException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, "Deadlock detected, reserveFlight operation for transaction " + tid);
+		}
 	}
 	
 	/* reserve an itinerary */
-    public boolean itinerary(int id,int customer,Vector<Integer> flightNumbers,String location,boolean Car,boolean Room)
-	throws RemoteException {
-    	return false;
+    public void itinerary(int id,int customer,Vector<Integer> flightNumbers,String location,boolean Car,boolean Room)
+	throws RemoteException, TransactionAbortedException, InvalidTransactionNumException
+	{
+    	return;
     }
     
     /*
@@ -615,28 +820,32 @@ public class ResourceManagerImpl
     	return tid;
     }
     
-    public boolean commitTransaction(int tid) throws RemoteException
+    public boolean commitTransaction(int tid) throws RemoteException, InvalidTransactionNumException
     {
     	if (!check_tid(tid)) {
-    		return false;
-    	}
+			throw new InvalidTransactionNumException(tid);
+		}
+    	
+    	Trace.info("commitTransaction() : " + tid);
     	
     	// all operations have already been performed, simply delete transaction
     	this.t_table.remove(tid);
-    	
+    	this.lm.UnlockAll(tid);
+ 
     	return true;
     }
     
     //
-    public boolean abortTransaction(int tid) throws RemoteException
+    public boolean abortTransaction(int tid) throws RemoteException, InvalidTransactionNumException
     {
     	if (!check_tid(tid)) {
-    		return false;
-    	}
+			throw new InvalidTransactionNumException(tid);
+		}
+    	
+    	Trace.info("\nabortTransaction() : " + tid);
     	
     	RMTransaction t = this.t_table.get(tid);
     	
-    	System.out.println();
     	System.out.println("before >>>");
     	this.m_itemHT.dump();
     	
@@ -659,65 +868,73 @@ public class ResourceManagerImpl
     		}
     	}
     	
+    	System.out.println();
     	System.out.println("After >>>");
     	this.m_itemHT.dump();
     	
-    	return true;
+    	this.t_table.remove(tid);
+    	lm.UnlockAll(tid);
+    	
+    	return ret;
     }
     
-    private boolean addRemove(int tid, String key) 
+    // These must not fail!
+    private void addRemove(int tid, String key) 
     {
     	Class rm = this.getClass();
 		
     	if (!check_tid(tid)) {
-    		return false;
+    		System.err.println("undo operation added on nonexistent transaction, add tid check!!!");
+    		return;
     	}
 		
+    		
 		RMTransaction t = this.t_table.get(tid);
-		
+			
 		// add undo info
-		Method m;
+		Method m = null;
 		try {
-			m = rm.getDeclaredMethod("removeData", String.class);
+			m = rm.getDeclaredMethod("removeData", int.class, String.class);
 		} catch (NoSuchMethodException e) {
 			e.printStackTrace();
-			return false;
+			System.out.println("Fix reflection!!!");
 		}
-					
+						
 		ArrayList args = new ArrayList();
 		args.add(key);	
-					
-		t.undo_stack.push(new RMOperation(m, args));	
+						
+		t.undo_stack.push(new RMOperation(m, args));
+    	
 		
-		return true;
+		return;
     }
 
-    private boolean addWrite(int tid, String key, RMItem obj)
+    private void addWrite(int tid, String key, RMItem obj)
     {
     	Class rm = this.getClass();
     		
     	if (!check_tid(tid)) {
-    		return false;
+    		System.err.println("undo operation added on nonexistent transaction, add tid check!!!");
+    		return;
     	}
 		
     	RMTransaction t = this.t_table.get(tid);
     	
 		// add undo
-		Method m;
+		Method m = null;
 		try {
-			m = rm.getDeclaredMethod("writeData", String.class, RMItem.class);
+			m = rm.getDeclaredMethod("writeData", int.class, String.class, RMItem.class);
 		} catch (NoSuchMethodException e) {
 			e.printStackTrace();
-			return false;
+			System.out.println("Fix reflection!!!");
 		}
 		
 		ArrayList<Object> args = new ArrayList<Object>();
+		args.add(tid);
 		args.add(key);
 		args.add(obj);
 		
 		t.undo_stack.push(new RMOperation(m, args));
-		
-		return true;
     }
     
     // checks if tid is a valid transaction

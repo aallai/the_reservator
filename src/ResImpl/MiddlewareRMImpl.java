@@ -9,7 +9,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
-
+/*
 public class MiddlewareRMImpl extends ResourceManagerImpl {
 	protected ResourceManager flightsRM;
 	protected ResourceManager carsRM;
@@ -120,19 +120,17 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 
 	// Create a new flight, or add seats to existing flight
 	//  NOTE: if flightPrice <= 0 and the flight already exists, it maintains its current price
-	public boolean addFlight(int id, int flightNum, int flightSeats, int flightPrice)
+	public void addFlight(int id, int flightNum, int flightSeats, int flightPrice)
 			throws RemoteException {
 		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::addFlight(" + id + ", " + flightNum + ", " + flightSeats + ", $" + flightPrice + ") called" );
 
 		boolean result = false;
-		synchronized(flightsRM) {
-			result = flightsRM.addFlight(id, flightNum, flightSeats, flightPrice);
-		}
-
-		return result;
+		
+		result = flightsRM.addFlight(id, flightNum, flightSeats, flightPrice);
+		
 	}
 
-	public boolean deleteFlight(int id, int flightNum)
+	public void deleteFlight(int id, int flightNum)
 			throws RemoteException {
 		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteFlight(" + id + ", " + flightNum + ") called" );
 
@@ -146,7 +144,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 
 	// Create a new room location or add rooms to an existing location
 	//  NOTE: if price <= 0 and the room location already exists, it maintains its current price
-	public boolean addRooms(int id, String location, int count, int price)
+	public void addRooms(int id, String location, int count, int price)
 			throws RemoteException {
 		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::addRooms(" + id + ", " + location + ", " + count + ", $" + price + ") called" );
 
@@ -159,7 +157,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	}
 
 	// Delete rooms from a location
-	public boolean deleteRooms(int id, String location)
+	public void deleteRooms(int id, String location)
 			throws RemoteException {
 		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteRooms(" + id + ", " + location + ") called" );
 
@@ -173,7 +171,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 
 	// Create a new car location or add cars to an existing location
 	//  NOTE: if price <= 0 and the location already exists, it maintains its current price
-	public boolean addCars(int id, String location, int count, int price)
+	public void addCars(int id, String location, int count, int price)
 			throws RemoteException {
 		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::addCars(" + id + ", " + location + ", " + count + ", $" + price + ") called" );
 
@@ -186,7 +184,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	}
 
 	// Delete cars from a location
-	public boolean deleteCars(int id, String location)
+	public void deleteCars(int id, String location)
 			throws RemoteException {
 		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::deleteCars(" + id + ", " + location + ") called" );
 
@@ -356,7 +354,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 		return cid;
 	}
 
-	public boolean newCustomer(int id, int cid )
+	public void newCustomer(int id, int cid )
 			throws RemoteException {
 	
 		synchronized(flightsRM) {
@@ -379,7 +377,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 
 
 	// Deletes customer from the database. 
-	public boolean deleteCustomer(int id, int customerID)
+	public void deleteCustomer(int id, int customerID)
 			throws RemoteException {
 		Trace.info("RM::deleteCustomer(" + id + ", " + customerID + ") called" );
 
@@ -419,7 +417,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	//	
 
 	// Adds car reservation to this customer. 
-	public boolean reserveCar(int id, int customerID, String location)
+	public void reserveCar(int id, int customerID, String location)
 			throws RemoteException {
 		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::reserveCar(" + id + ", " + customerID + ", " + location + ") called" );
 
@@ -431,7 +429,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	}
 
 	// Adds room reservation to this customer. 
-	public boolean reserveRoom(int id, int customerID, String location)
+	public void reserveRoom(int id, int customerID, String location)
 			throws RemoteException {
 		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::reserveRoom(" + id + ", " + customerID + ", " + location + ") called" );
 
@@ -443,7 +441,7 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 	}
 
 	// Adds flight reservation to this customer.  
-	public boolean reserveFlight(int id, int customerID, int flightNum)
+	public void reserveFlight(int id, int customerID, int flightNum)
 			throws RemoteException {
 		Trace.info("MiddlewareRm("+hostName+":"+portNumber+")::reserveFlight(" + id + ", " + customerID + ", " + flightNum + ") called" );
 
@@ -454,8 +452,9 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 		return success;
 	}
 
-	/* reserve an itinerary */
-	public boolean itinerary(int id,int customer,Vector<Integer> flightNumbers,String location,boolean Car,boolean Room)
+	/* reserve an itinerary */ 
+/*
+	public void itinerary(int id,int customer,Vector<Integer> flightNumbers,String location,boolean Car,boolean Room)
 			throws RemoteException {    	
 		String traceStr = "MiddlewareRm("+hostName+":"+portNumber+")::itinerary(" + id + ", " + customer + ", < ";
 
@@ -504,5 +503,5 @@ public class MiddlewareRMImpl extends ResourceManagerImpl {
 		return true;
 	}
 }
-
+*/
 

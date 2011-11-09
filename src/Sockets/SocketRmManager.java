@@ -487,29 +487,4 @@ public class SocketRmManager extends BaseRm
 		return id++;
 	}
 
-	@Override
-	public boolean itinerary(int tid, int customer,
-			Vector<Integer> flightNumbers, String location, boolean Car,
-			boolean Room) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public int startTransaction() throws RemoteException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public boolean commitTransaction(int tid) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean abortTransaction(int tid) throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
-	}
 }
