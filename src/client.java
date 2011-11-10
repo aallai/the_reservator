@@ -11,6 +11,20 @@ import java.io.*;
 import PerformanceTest.ClientPerformanceTest;
 import PerformanceTest.ClientRequestThread;
 
+
+/*
+ * Client Program...
+ * 	3 Parts
+ * 		- Simple Lock Manager Test
+ * 		- Performance Tests (Single or Multithreadded) 
+ * 		- Client Command Line Interface
+ */
+
+/*
+ * TO DO:
+ * 	- add optional parameters to variate running of performance tests + switch between different client modes(test,cmd line,etc)
+ * 
+ */
 public class client
 {
     static String message = "blank";
@@ -28,6 +42,8 @@ public class client
     		return ClientRequestThread.TransactionType.ITINERARY;
     	} else if (str.equalsIgnoreCase("book_flight")) {
     		return ClientRequestThread.TransactionType.BOOK_FLIGHT;
+    	} else if (str.equalsIgnoreCase("query_bill")) {
+    		return ClientRequestThread.TransactionType.QUERY_BILL;
     	}
     	
     	return ClientRequestThread.TransactionType.VOID;
@@ -57,13 +73,14 @@ public class client
 				e.printStackTrace();
 			}
     	} else if (RUNNING_PERMANCE_TEST) {
-    		//Run performance tests with ClientPerformanceTest class
+    		//Run performance tests with ClientPerformanceTest class!
     	    String server = "";
     	    String rm_name = "";
     	    ClientRequestThread.TransactionType transactionType1;
     	    ClientRequestThread.TransactionType transactionType2;
-    	    int load = -1;
-    	    int submitRequestVariation = -1;
+    	    int load = 14;	//set to -1 when running part a)
+    	    int submitRequestVariation = 0;
+    	    int numberOfClients = 10;
     		
     		//Determine if input is correct
     	    if (args.length == 5) {
@@ -84,7 +101,8 @@ public class client
     		    load = Integer.parseInt(args[3]);
     		    submitRequestVariation = Integer.parseInt(args[4]);
     		    
-        		performanceManager = new ClientPerformanceTest(ClientPerformanceTest.PART_A, server, rm_name, transactionType1, transactionType2, load, submitRequestVariation);
+        		performanceManager = new ClientPerformanceTest(ClientPerformanceTest.PART_B, server, rm_name, transactionType1, transactionType2, numberOfClients, load, submitRequestVariation);
+        		performanceManager.start();
     	    } else
     		{
     			System.out.println ("Usage: java client rmihost:rmi_name transaction_type1 transaction_type2 max_load sleep_variation"); 
@@ -410,7 +428,7 @@ public class client
 		    }
 		    break;
 		    
-		case 12: //querying a Room location
+		case 12: //querying a Room locations
 		    if(arguments.size()!=3){
 			obj.wrongNumber();
 			break;
