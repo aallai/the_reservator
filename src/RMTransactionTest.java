@@ -18,54 +18,61 @@ public class RMTransactionTest {
 			final ResourceManager rm = (ResourceManager) registry.lookup("aallai_rm");
 		
 	
-			try {
+			
 				
-				int tid = rm.startTransaction();
-				rm.newCustomer(tid, 1337);
-				rm.commitTransaction(tid);
+			int tid = rm.startTransaction();
+			System.out.println("One : " + tid);
+			rm.newCustomer(tid, 1337);
+			rm.commitTransaction(tid);
 				
 				
-				tid = rm.startTransaction();
-		
-				rm.addCars(tid, "HILTON", 10, 50);
-				rm.addFlight(tid, 1, 10, 50);
+			tid = rm.startTransaction();
+			System.out.println("Two : " + tid);
+			rm.addCars(tid, "HILTON", 10, 50);
+			rm.addFlight(tid, 1, 10, 50);
 				
-				rm.commitTransaction(tid);
+			rm.commitTransaction(tid);
 				
-				new Thread() 
+			new Thread() 
+			{
+				public void run() 
 				{
-					public void run() 
-					{
-						try {
-							int tid = rm.startTransaction();
-							rm.reserveCar(tid, 1337, "HILTON");
-							rm.reserveFlight(tid, 1337, 1);
-							rm.commitTransaction(tid);
+					try {
+						int tid = rm.startTransaction();
+						System.out.println("Three : " + tid);
+						rm.reserveCar(tid, 1337, "HILTON");
+						rm.reserveFlight(tid, 1337, 1);
+						rm.commitTransaction(tid);
 							
-						} catch (RemoteException e) {
-							e.printStackTrace();
-						} catch (TransactionAbortedException e) {
-							e.printStackTrace();
-						} catch (InvalidTransactionNumException e) {
-							e.printStackTrace();
-						} 
-					}
-				}.start();
+					} catch (RemoteException e) {
+						System.out.println(e.getMessage());
+					} catch (TransactionAbortedException e) {
+						System.out.println(e.getMessage());
+					} catch (InvalidTransactionNumException e) {
+						System.out.println(e.getMessage());
+					} 
+				}
+			}.start();
 				
+			try {
 				tid = rm.startTransaction();
-				System.out.println(rm.queryCustomerInfo(tid, 1337));
+				System.out.println("Four : " + tid);
 				System.out.println(rm.queryCarsPrice(tid, "Hilton"));
+				System.out.println(rm.queryFlightPrice(tid, 1337));
 				System.out.println(rm.queryCustomerInfo(tid, 1337));
 				rm.deleteCustomer(tid, 1337);
-				
 				rm.commitTransaction(tid);
-			
-			} catch (RemoteException e) {
-				e.printStackTrace();
 			} catch (TransactionAbortedException e) {
-				e.printStackTrace();
+				System.out.println(e.getMessage());
+			}
+			
+			try {
+				tid = rm.startTransaction();
+				System.out.println("Five : " + tid);
+				Thread.sleep(60000);
+				rm.queryCars(tid, "HILTON");
 			} catch (InvalidTransactionNumException e) {
-				e.printStackTrace();
+				System.out.println(e.getMessage());
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
