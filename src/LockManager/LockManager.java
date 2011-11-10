@@ -77,7 +77,7 @@ public class LockManager
                             // lock table
                         	
                         	//We get both the transaction object and data object from table, then update the values
-                            DataObj dataKey = new DataObj(xid, strData, lockType);
+                            TrxnObj dataKey = new DataObj(xid, strData, lockType);
                             TrxnObj trxnKey = new TrxnObj(xid, strData, lockType);
                             TrxnObj currDataObj = (TrxnObj)LockManager.lockTable.get(dataKey);
                         	TrxnObj currTrxnObj = (TrxnObj)LockManager.lockTable.get(trxnKey);
