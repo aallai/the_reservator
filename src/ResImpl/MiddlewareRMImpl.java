@@ -473,7 +473,7 @@ public class MiddlewareRMImpl implements ResourceManager {
 		
 		
 		// Generate a globally unique ID for the new customer
-		int cid = Integer.parseInt( String.valueOf( Math.round( Math.random() * 1000 + 1 )) +
+		int cid = Integer.parseInt( String.valueOf( Math.round( Math.random() * 9 + 1 )) +
 				String.valueOf(Calendar.getInstance().get(Calendar.MILLISECOND)) +
 				String.valueOf( Math.round( Math.random() * 1000 + 1 )));
 
