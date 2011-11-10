@@ -42,6 +42,7 @@ public class RMTransactionTest {
 						System.out.println("Three : " + tid);
 						rm.reserveCar(tid, 1337, "HILTON");
 						rm.reserveFlight(tid, 1337, 1);
+						rm.queryCustomerInfo(tid, 1337);
 						rm.commitTransaction(tid);
 							
 					} catch (RemoteException e) {
@@ -57,9 +58,9 @@ public class RMTransactionTest {
 			try {
 				tid = rm.startTransaction();
 				System.out.println("Four : " + tid);
+				rm.reserveFlight(tid, 1337, 1);
 				System.out.println(rm.queryCarsPrice(tid, "Hilton"));
 				System.out.println(rm.queryFlightPrice(tid, 1337));
-				System.out.println(rm.queryCustomerInfo(tid, 1337));
 				rm.deleteCustomer(tid, 1337);
 				rm.commitTransaction(tid);
 			} catch (TransactionAbortedException e) {

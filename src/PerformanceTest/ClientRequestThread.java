@@ -20,7 +20,7 @@ import ResInterface.ResourceManager;
 		private int sleepTime;
 		private int sleepVariation;
 	
-		private Vector<Integer> results;
+		private Vector<Integer> results = new Vector<Integer>();
 		
 	    private ResourceManager rm = null;
 	    private int id;
@@ -77,13 +77,13 @@ import ResInterface.ResourceManager;
 					    System.out.println("Adding a new Customer using id: "+id);
 					    try{
 					    	start = System.currentTimeMillis();
-					    	rm.startTransaction();
+					    	id = rm.startTransaction();
 					    	int customer=rm.newCustomer(id);
 					    	rm.commitTransaction(id);
 					    	end = System.currentTimeMillis();
 					    	results.add(new Integer((int)(end-start)));
 					    	
-					    	System.out.println("(" + id + ") new customer id: "+customer + ", time_elapsed: " + (end-start));
+					    	System.out.println("New customer id: "+customer + ", time_elapsed: " + (end-start));
 					    }
 					    catch(Exception e){
 					    	System.out.println("EXCEPTION:");
@@ -103,7 +103,7 @@ import ResInterface.ResourceManager;
 		
 			//print all values while taking avergae
 			System.out.println("(" + id + ") Response Times...");
-			for (int j = 0; j < results.size(); i++) {
+			for (int j = 0; j < results.size(); j++) {
 				sum += results.get(j).intValue();
 				System.out.println("(" + id + ") : " + results.get(j).intValue());
 			}

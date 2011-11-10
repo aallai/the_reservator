@@ -294,7 +294,7 @@ public class MiddlewareRMImpl implements ResourceManager {
 		
 		Trace.info("MiddlewareRm()::queryFlightPrice(" + tid + ", " + flightNum + ") called" );
 
-		add_rm(t, this.carsRM);
+		add_rm(t, this.flightsRM);
 		int rmtid = t.rm_table.get(this.flightsRM);
 		
 		int flightPrice;
@@ -470,10 +470,12 @@ public class MiddlewareRMImpl implements ResourceManager {
 		MiddlewareTransaction t = read_lock(tid);
 		
 		Trace.info("MiddlewareRm()::newCustomer() called" );
+		
+		
 		// Generate a globally unique ID for the new customer
-		int cid = Integer.parseInt( String.valueOf(tid) +
+		int cid = Integer.parseInt( String.valueOf( Math.round( Math.random() * 1000 + 1 )) +
 				String.valueOf(Calendar.getInstance().get(Calendar.MILLISECOND)) +
-				String.valueOf( Math.round( Math.random() * 100 + 1 )));
+				String.valueOf( Math.round( Math.random() * 1000 + 1 )));
 
 		add_rm(t, this.carsRM);
 		add_rm(t, this.flightsRM);

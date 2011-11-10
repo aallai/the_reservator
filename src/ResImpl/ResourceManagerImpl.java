@@ -901,6 +901,7 @@ public class ResourceManagerImpl
 		}
 						
 		ArrayList args = new ArrayList();
+		args.add(tid);
 		args.add(key);	
 						
 		t.undo_stack.push(new RMOperation(m, args));
