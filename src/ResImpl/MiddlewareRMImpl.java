@@ -254,7 +254,7 @@ public class MiddlewareRMImpl implements ResourceManager {
 		
 		Trace.info("MiddlewareRm()::queryFlight(" + tid + ", " + flightNum + ") called" );
 
-		add_rm(t, this.carsRM);
+		add_rm(t, this.flightsRM);
 		int rmtid = t.rm_table.get(this.flightsRM);
 		
 		int numberOfEmptySeats;
