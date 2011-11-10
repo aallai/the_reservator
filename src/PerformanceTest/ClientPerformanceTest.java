@@ -23,7 +23,7 @@ public class ClientPerformanceTest {
 	public int numberOfThreads = 1;
 	private String performanceTestType;
 	
-	private Vector<ClientRequestThread> clientThreadTable; 
+	private Vector<ClientRequestThread> clientThreadTable = new Vector<ClientRequestThread>(); 
 	
 	public ClientPerformanceTest(String performanceTestType, String server, String rm_name, ClientRequestThread.TransactionType transactionType1, ClientRequestThread.TransactionType transactionType2, int load, 
 			int submitRequestVariation) {
