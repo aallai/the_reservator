@@ -77,19 +77,20 @@ public class LockManager
                             // lock table
                         	
                         	//We get both the transaction object and data object from table, then update the values
-                            TrxnObj dataKey = new DataObj(xid, strData, lockType);
-                            TrxnObj trxnKey = new TrxnObj(xid, strData, lockType);
-                            TrxnObj currDataObj = (TrxnObj)LockManager.lockTable.get(dataKey);
+                            DataObj dataKey = new DataObj(xid, strData, LockManager.READ);
+                            TrxnObj trxnKey = new TrxnObj(xid, strData, LockManager.READ);
+                        	DataObj currDataObj = (DataObj)LockManager.lockTable.get(dataKey);
                         	TrxnObj currTrxnObj = (TrxnObj)LockManager.lockTable.get(trxnKey);
 
                         	if (currDataObj != null && currTrxnObj != null) {
                         		currDataObj.lockType = LockManager.WRITE;
                         		currTrxnObj.lockType = LockManager.WRITE;
+                        		PRINT("- " + "(" + xid + ")" +" Lock Conversion Granted");
                         	} else {
                         		System.out.println("Ooops, something went wrong somehwere in the lock table.");
                         	}
                         	
-                        	PRINT("- " + "(" + xid + ")" +" Lock Conversion Granted");
+                        	
                         	this.lockTable.printDataLocks();
                         } else {
                             // a lock request that is not lock conversion
