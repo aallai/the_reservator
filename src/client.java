@@ -26,7 +26,7 @@ import PerformanceTest.ClientRequestThread;
  * 
  */
 public class client
-{
+{//
     static String message = "blank";
     static ResourceManager rm = null;
 
@@ -49,8 +49,7 @@ public class client
     	return ClientRequestThread.TransactionType.VOID;
     }
     
-    public static void main(String args[])
-	{
+    public static void main(String args[]) {
     	if (TESTING_LOCK_MANAGER) {
     		System.out.println("Testing Lock Manager");
     		LockManager lm = new LockManager();
@@ -73,21 +72,22 @@ public class client
 				e.printStackTrace();
 			}
     	} else if (RUNNING_PERMANCE_TEST) {
-    		//Run performance tests with ClientPerformanceTest class!
-    	    String server = "";
-    	    String rm_name = "";
-    	    ClientRequestThread.TransactionType transactionType1;
-    	    ClientRequestThread.TransactionType transactionType2;
-    	    int load = 14;	//set to -1 when running part a)
-    	    int submitRequestVariation = 0;
-    	    int numberOfClients = 10;
-    		
     		//Determine if input is correct
-    	    if (args.length == 5) {
+    	    if (args.length >= 5) {
+        		//Run performance tests with ClientPerformanceTest class!
+        	    String server = "";
+        	    String rm_name = "";
+        	    String testType = "";
+        	    ClientRequestThread.TransactionType transactionType1;
+        	    ClientRequestThread.TransactionType transactionType2;
+        	    int load = 0;	//set to -1 when running part a)
+        	    int submitRequestVariation = 0;
+        	    int numberOfClients = 10;
+        	    
     			server = args[0]; 
     			
     		    String elements[] = server.split(":");
-    		    
+    		    ////
     		    if (elements.length != 2) {
     		    	System.err.println("[rmihost] must be in the format [server:rm_name]");
     		    }
@@ -95,17 +95,24 @@ public class client
     		    server = elements[0];
     		    rm_name = elements[1];
     		    
-    		    transactionType1 = stringToTransactionType(args[1]);
-    		    transactionType2 = stringToTransactionType(args[2]);
+    		    testType = args[1];
     		    
-    		    load = Integer.parseInt(args[3]);
-    		    submitRequestVariation = Integer.parseInt(args[4]);
+    		    transactionType1 = stringToTransactionType(args[2]);
+    		    transactionType2 = stringToTransactionType(args[3]);
+    		    //
+    		    numberOfClients = Integer.parseInt(args[4]);
     		    
-        		performanceManager = new ClientPerformanceTest(ClientPerformanceTest.PART_B, server, rm_name, transactionType1, transactionType2, numberOfClients, load, submitRequestVariation);
+    		    int requestTimeLimit = Integer.parseInt(args[5]);
+    		    
+    		   	load = Integer.parseInt(args[6]);
+   	    //		    
+    		    submitRequestVariation = Integer.parseInt(args[7]);
+    		    
+        		performanceManager = new ClientPerformanceTest(testType, server, rm_name, transactionType1, transactionType2, numberOfClients, requestTimeLimit, load, submitRequestVariation);
         		performanceManager.start();
     	    } else
     		{
-    			System.out.println ("Usage: java client rmihost:rmi_name transaction_type1 transaction_type2 max_load sleep_variation"); 
+    			System.out.println ("Usage: java client rmihost:rmi_name testType trxnType1 trxnType2 numberOfClients requestTimeLimit [load] [submit_request_variation]"); 
     			System.exit(1); 
     	    }    		
     	} else {
@@ -233,7 +240,7 @@ public class client
 			flightSeats = obj.getInt(arguments.elementAt(3));
 			flightPrice = obj.getInt(arguments.elementAt(4));
 			rm.addFlight(Id,flightNum,flightSeats,flightPrice);
-
+//
 		    }
 		    catch(Exception e){
 			System.out.println("EXCEPTION:");
@@ -507,7 +514,7 @@ public class client
 			e.printStackTrace();
 		    }			    
 		    break;
-
+//
 		case 16: //querying a Room price
 		    if(arguments.size()!=3){
 			obj.wrongNumber();
@@ -634,7 +641,7 @@ public class client
 		    System.out.println("Quitting client.");
 		    System.exit(1);
 		    
-		    
+		//f    
 		case 22:  //new Customer given id
 		    if(arguments.size()!=3){
 			obj.wrongNumber();
@@ -751,7 +758,7 @@ public class client
 		System.out.println("Typing help, <commandname> gives details on how to use the particular command.");
 		break;
 
-	    case 2:  //new flight
+	    case 2:  //new flight!
 		System.out.println("Adding a new Flight.");
 		System.out.println("Purpose:");
 		System.out.println("\tAdd information about a new flight.");
@@ -759,7 +766,7 @@ public class client
 		System.out.println("\tnewflight,<id>,<flightnumber>,<flightSeats>,<flightprice>");
 		break;
 		
-	    case 3:  //new Car
+	    case 3:  //new Car--
 		System.out.println("Adding a new Car.");
 		System.out.println("Purpose:");
 		System.out.println("\tAdd information about a new car location.");
@@ -773,7 +780,7 @@ public class client
 		System.out.println("\tAdd information about a new room location.");
 		System.out.println("\nUsage:");
 		System.out.println("\tnewroom,<id>,<location>,<numberofrooms>,<priceperroom>");
-		break;
+		break;//.
 		
 	    case 5:  //new Customer
 		System.out.println("Adding a new Customer.");
@@ -855,7 +862,7 @@ public class client
 		System.out.println("\nUsage:");
 		System.out.println("\tqueryflightprice,<id>,<flightnumber>");
 		break;
-		
+		//
 	    case 15: //querying a Car Location for price
 		System.out.println("Querying a Car location.");
 		System.out.println("Purpose:");
@@ -863,7 +870,7 @@ public class client
 		System.out.println("\nUsage:");
 		System.out.println("\tquerycarprice,<id>,<location>");		
 		break;
-		
+		//
 	    case 16: //querying a Room location for price
 		System.out.println("Querying a Room Location.");
 		System.out.println("Purpose:");
@@ -879,7 +886,7 @@ public class client
 		System.out.println("\nUsage:");
 		System.out.println("\treserveflight,<id>,<customerid>,<flightnumber>");
 		break;
-		
+		//
 	    case 18:  //reserve a car
 		System.out.println("Reserving a Car.");
 		System.out.println("Purpose:");
