@@ -878,7 +878,7 @@ public class client
 		return 24;
 	else
 	    return 666;
-
+//
     }
 
     public void listCommands()
