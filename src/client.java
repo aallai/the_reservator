@@ -64,7 +64,8 @@ public class client
     	} else {
 			System.out.println ("Usage: java client rmihost:rmi_name <CLIENT_MODE> <trxnType1> <trxnType2> <numberOfClients> <requestTimeLimit> [load] [submit_request_variation]" 
 					+ "\nCLIENT_MODE = {part_a; part_b; part_c; lock_manager; default=cmdline}"
-					+ "\ntrxnType<N> = {new_customer; book_flight; itinerary}"); 			System.exit(1);
+					+ "\ntrxnType<N> = {new_customer; book_flight; itinerary}"); 			
+			System.exit(1);	
     	}
     	
     	if (TESTING_LOCK_MANAGER) {
@@ -263,10 +264,8 @@ public class client
 			flightSeats = obj.getInt(arguments.elementAt(3));
 			flightPrice = obj.getInt(arguments.elementAt(4));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			rm.addFlight(Id,flightNum,flightSeats,flightPrice);
-			rm.commitTransaction(Id);
-
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
 				e.printStackTrace();
@@ -279,7 +278,6 @@ public class client
 				e.printStackTrace();
 		    }
 		    break;
-		    
 		case 3:  //new Car
 		    if(arguments.size()!=5){
 			obj.wrongNumber();
@@ -294,9 +292,8 @@ public class client
 			numCars = obj.getInt(arguments.elementAt(3));
 			price = obj.getInt(arguments.elementAt(4));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			rm.addCars(Id,location,numCars,price);
-			rm.commitTransaction(Id);		
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
 				e.printStackTrace();
@@ -324,9 +321,8 @@ public class client
 			numRooms = obj.getInt(arguments.elementAt(3));
 			price = obj.getInt(arguments.elementAt(4));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			rm.addRooms(Id,location,numRooms,price);
-			rm.commitTransaction(Id);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
 				e.printStackTrace();
@@ -339,7 +335,6 @@ public class client
 				e.printStackTrace();
 		    }
 		    break;
-		    
 		case 5:  //new Customer
 		    if(arguments.size()!=2){
 			obj.wrongNumber();
@@ -347,10 +342,8 @@ public class client
 		    }
 		    System.out.println("Adding a new Customer using id:"+arguments.elementAt(1));
 		    try{
-			Id = rm.startTransaction();
-			int customer=rm.newCustomer(Id);
-			rm.commitTransaction(Id);
-
+				Id = obj.getInt(arguments.get(1));
+				int customer=rm.newCustomer(Id);
 			System.out.println("new customer id:"+customer);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
@@ -375,9 +368,8 @@ public class client
 		    try{
 			flightNum = obj.getInt(arguments.elementAt(2));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			rm.deleteFlight(Id,flightNum);
-			rm.commitTransaction(Id);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
 				e.printStackTrace();
@@ -390,7 +382,6 @@ public class client
 				e.printStackTrace();
 		    }
 		    break;
-		    
 		case 7: //delete Car
 		    if(arguments.size()!=3){
 			obj.wrongNumber();
@@ -401,9 +392,8 @@ public class client
 		    try{
 			location = obj.getString(arguments.elementAt(2));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			rm.deleteCars(Id,location);
-			rm.commitTransaction(Id);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
 				e.printStackTrace();
@@ -427,9 +417,8 @@ public class client
 		    try{
 			location = obj.getString(arguments.elementAt(2));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			rm.deleteRooms(Id,location);
-			rm.commitTransaction(Id);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
 				e.printStackTrace();
@@ -442,7 +431,6 @@ public class client
 				e.printStackTrace();
 		    }
 		    break;
-		    
 		case 9: //delete Customer
 		    if(arguments.size()!=3){
 			obj.wrongNumber();
@@ -453,9 +441,8 @@ public class client
 		    try{
 			int customer = obj.getInt(arguments.elementAt(2));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			rm.deleteCustomer(Id,customer);
-			rm.commitTransaction(Id);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
 				e.printStackTrace();
@@ -468,7 +455,6 @@ public class client
 				e.printStackTrace();
 		    }
 		    break;
-		    
 		case 10: //querying a flight
 		    if(arguments.size()!=3){
 			obj.wrongNumber();
@@ -479,10 +465,8 @@ public class client
 		    try{
 			flightNum = obj.getInt(arguments.elementAt(2));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			int seats=rm.queryFlight(Id,flightNum);
-			rm.commitTransaction(Id);
-
 			System.out.println("Number of seats available:"+seats);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
@@ -507,10 +491,8 @@ public class client
 		    try{
 			location = obj.getString(arguments.elementAt(2));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			numCars=rm.queryCars(Id,location);
-			rm.commitTransaction(Id);
-
 			System.out.println("number of Cars at this location:"+numCars);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
@@ -523,8 +505,7 @@ public class client
 				System.out.println(e.getMessage());
 				e.printStackTrace();
 		    }
-		    break;
-		    
+		    break; 
 		case 12: //querying a Room locations
 		    if(arguments.size()!=3){
 			obj.wrongNumber();
@@ -535,10 +516,8 @@ public class client
 		    try{
 			location = obj.getString(arguments.elementAt(2));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			numRooms=rm.queryRooms(Id,location);
-			rm.commitTransaction(Id);
-
 			System.out.println("number of Rooms at this location:"+numRooms);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
@@ -552,7 +531,6 @@ public class client
 				e.printStackTrace();
 		    }
 		    break;
-		    
 		case 13: //querying Customer Information
 		    if(arguments.size()!=3){
 			obj.wrongNumber();
@@ -563,10 +541,8 @@ public class client
 		    try{
 			int customer = obj.getInt(arguments.elementAt(2));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			String bill=rm.queryCustomerInfo(Id,customer);
-			rm.commitTransaction(Id);
-
 			System.out.println("Customer info:"+bill);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
@@ -579,8 +555,7 @@ public class client
 				System.out.println(e.getMessage());
 				e.printStackTrace();
 		    }
-		    break;		       
-		    
+		    break;
 		case 14: //querying a flight Price
 		    if(arguments.size()!=3){
 			obj.wrongNumber();
@@ -591,10 +566,8 @@ public class client
 		    try{
 			flightNum = obj.getInt(arguments.elementAt(2));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			price=rm.queryFlightPrice(Id,flightNum);
-			rm.commitTransaction(Id);
-
 			System.out.println("Price of a seat:"+price);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
@@ -608,7 +581,6 @@ public class client
 				e.printStackTrace();
 		    }
 		    break;
-		    
 		case 15: //querying a Car Price
 		    if(arguments.size()!=3){
 			obj.wrongNumber();
@@ -619,10 +591,8 @@ public class client
 		    try{
 			location = obj.getString(arguments.elementAt(2));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			price=rm.queryCarsPrice(Id,location);
-			rm.commitTransaction(Id);
-
 			System.out.println("Price of a car at this location:"+price);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
@@ -647,10 +617,8 @@ public class client
 		    try{
 			location = obj.getString(arguments.elementAt(2));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			price=rm.queryRoomsPrice(Id,location);
-			rm.commitTransaction(Id);
-
 			System.out.println("Price of Rooms at this location:"+price);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
@@ -664,7 +632,6 @@ public class client
 				e.printStackTrace();
 		    }
 		    break;
-		    
 		case 17:  //reserve a flight
 		    if(arguments.size()!=4){
 			obj.wrongNumber();
@@ -677,9 +644,8 @@ public class client
 			int customer = obj.getInt(arguments.elementAt(2));
 			flightNum = obj.getInt(arguments.elementAt(3));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			rm.reserveFlight(Id,customer,flightNum);
-			rm.commitTransaction(Id);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
 				e.printStackTrace();
@@ -691,8 +657,7 @@ public class client
 				System.out.println(e.getMessage());
 				e.printStackTrace();
 		    }
-		    break;
-		    
+		    break;  
 		case 18:  //reserve a car
 		    if(arguments.size()!=4){
 			obj.wrongNumber();
@@ -706,9 +671,8 @@ public class client
 			int customer = obj.getInt(arguments.elementAt(2));
 			location = obj.getString(arguments.elementAt(3));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			rm.reserveCar(Id,customer,location);
-			rm.commitTransaction(Id);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
 				e.printStackTrace();
@@ -734,9 +698,8 @@ public class client
 			int customer = obj.getInt(arguments.elementAt(2));
 			location = obj.getString(arguments.elementAt(3));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			rm.reserveRoom(Id,customer,location);
-			rm.commitTransaction(Id);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
 				e.printStackTrace();
@@ -771,10 +734,8 @@ public class client
 			Car = obj.getBoolean(arguments.elementAt(arguments.size()-2));
 			Room = obj.getBoolean(arguments.elementAt(arguments.size()-1));
 			
-			Id = rm.startTransaction();
-			rm.itinerary(Id,customer,flightNumbers,location,Car,Room);
-			rm.commitTransaction(Id);
-		   
+			Id = obj.getInt(arguments.get(1));
+			rm.itinerary(Id,customer,flightNumbers,location,Car,Room);		   
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
 				e.printStackTrace();
@@ -806,9 +767,8 @@ public class client
 		    try{
 			Cid = obj.getInt(arguments.elementAt(2));
 			
-			Id = rm.startTransaction();
+			Id = obj.getInt(arguments.get(1));
 			rm.newCustomer(Id,Cid);
-			rm.commitTransaction(Id);
 			System.out.println("new customer id:"+Cid);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
@@ -822,7 +782,29 @@ public class client
 				e.printStackTrace();
 		    }
 		    break;
-		    
+		case 23:
+		    try{
+		    	Id = rm.startTransaction();
+		    	
+		    	System.out.println("Transaction #" + Id + " started.");
+		    } catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
+		    }
+			break;
+		case 24:
+		    try{
+				Id = obj.getInt(arguments.get(1));
+				rm.commitTransaction(Id);
+		    	
+		    	System.out.println("Transaction #" + Id + " commited.");
+		    } catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
+		    }
+			break;
 		default:
 		    System.out.println("The interface does not support this command.");
 		    break;
@@ -890,6 +872,10 @@ public class client
 	    return 21;
 	else if (argument.compareToIgnoreCase("newcustomerid")==0)
 	    return 22;
+	else if (argument.compareToIgnoreCase("start") == 0)
+		return 23;
+	else if (argument.compareToIgnoreCase("commit") == 0)
+		return 24;
 	else
 	    return 666;
 
