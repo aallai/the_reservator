@@ -69,6 +69,8 @@ public class ClientPerformanceTest {
 			int counter = 0;
 			this.numberOfClients = numberOfClients;
 			
+			System.out.println("Creating Threads - PART_B");
+			
 			try 
 			{////
 				Registry registry = LocateRegistry.getRegistry(server);

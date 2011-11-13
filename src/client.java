@@ -30,8 +30,9 @@ public class client
     static String message = "blank";
     static ResourceManager rm = null;
 
-    private static final boolean TESTING_LOCK_MANAGER = false;
-    private static final boolean RUNNING_PERMANCE_TEST = true;
+    private static boolean TESTING_LOCK_MANAGER = false;
+    private static boolean RUNNING_PERMANCE_TEST = false;
+    private static boolean COMMAND_LINE = false;
     
     private static ClientPerformanceTest performanceManager;	//we do most of the work for performance analysis in this class
     
@@ -50,6 +51,22 @@ public class client
     }
     
     public static void main(String args[]) {
+    	if (args.length == 1) {
+			COMMAND_LINE = true;	
+    	} else if (args.length > 1) {
+    		if (args[1].equalsIgnoreCase("part_a") || args[1].equalsIgnoreCase("part_b")) {
+    			RUNNING_PERMANCE_TEST = true;
+    		} else if (args[1].equalsIgnoreCase("lock_manager")) {
+    			TESTING_LOCK_MANAGER = true;
+    		} else {
+    			COMMAND_LINE = true;
+    		}
+    	} else {
+			System.out.println ("Usage: java client rmihost:rmi_name <CLIENT_MODE> <trxnType1> <trxnType2> <numberOfClients> <requestTimeLimit> [load] [submit_request_variation]" 
+					+ "\nCLIENT_MODE = {part_a; part_b; part_c; lock_manager; default=cmdline}"
+					+ "\ntrxnType<N> = {new_customer; book_flight; itinerary}"); 			System.exit(1);
+    	}
+    	
     	if (TESTING_LOCK_MANAGER) {
     		System.out.println("Testing Lock Manager");
     		LockManager lm = new LockManager();
@@ -103,16 +120,23 @@ public class client
     		    numberOfClients = Integer.parseInt(args[4]);
     		    
     		    int requestTimeLimit = Integer.parseInt(args[5]);
+
+    		    try {
+    		    	load = Integer.parseInt(args[6]);
+    		    	submitRequestVariation = Integer.parseInt(args[7]);
+    		    } catch (Exception e) {
+    		    	//this is okay - optional parameters
+    		    }
     		    
-    		   	load = Integer.parseInt(args[6]);
-   	    //		    
-    		    submitRequestVariation = Integer.parseInt(args[7]);
+        		System.out.println("Running Performance Tests.");
     		    
         		performanceManager = new ClientPerformanceTest(testType, server, rm_name, transactionType1, transactionType2, numberOfClients, requestTimeLimit, load, submitRequestVariation);
         		performanceManager.start();
     	    } else
     		{
-    			System.out.println ("Usage: java client rmihost:rmi_name testType trxnType1 trxnType2 numberOfClients requestTimeLimit [load] [submit_request_variation]"); 
+    			System.out.println ("Usage: java client rmihost:rmi_name CLIENT_MODE <trxnType1> <trxnType2> <numberOfClients> <requestTimeLimit> [load] [submit_request_variation]" 
+    					+ "\nCLIENT_MODE = {part_a; part_b; part_c; lock_manager; default=cmdline}"
+    					+ "\ntrxnType<N> = {new_customer; book_flight; itinerary}"); 
     			System.exit(1); 
     	    }    		
     	} else {
@@ -145,13 +169,13 @@ public class client
 		    server = elements[0];
 		    rm_name = elements[1];
 
-	    }
-	    else if (args.length != 1) 
+	    }//
+	    else if (args.length < 1) 
 		{
-			System.out.println ("Usage: java client rmihost:rmi_name"); 
 			System.exit(1); 
 	    }
-		
+	    
+		System.out.println("Command Line Interface");
 	    
 		try 
 		{
@@ -234,18 +258,25 @@ public class client
 		    System.out.println("Add Flight Seats: "+arguments.elementAt(3));
 		    System.out.println("Set Flight Price: "+arguments.elementAt(4));
 		    
-		    try{
-			Id = obj.getInt(arguments.elementAt(1));
+		    try{				
 			flightNum = obj.getInt(arguments.elementAt(2));
 			flightSeats = obj.getInt(arguments.elementAt(3));
 			flightPrice = obj.getInt(arguments.elementAt(4));
+			
+			Id = rm.startTransaction();
 			rm.addFlight(Id,flightNum,flightSeats,flightPrice);
-//
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			rm.commitTransaction(Id);
+
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -259,17 +290,23 @@ public class client
 		    System.out.println("Add Number of Cars: "+arguments.elementAt(3));
 		    System.out.println("Set Price: "+arguments.elementAt(4));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			location = obj.getString(arguments.elementAt(2));
 			numCars = obj.getInt(arguments.elementAt(3));
 			price = obj.getInt(arguments.elementAt(4));
+			
+			Id = rm.startTransaction();
 			rm.addCars(Id,location,numCars,price);
-		
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			rm.commitTransaction(Id);		
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -283,17 +320,23 @@ public class client
 		    System.out.println("Add Number of Rooms: "+arguments.elementAt(3));
 		    System.out.println("Set Price: "+arguments.elementAt(4));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			location = obj.getString(arguments.elementAt(2));
 			numRooms = obj.getInt(arguments.elementAt(3));
 			price = obj.getInt(arguments.elementAt(4));
+			
+			Id = rm.startTransaction();
 			rm.addRooms(Id,location,numRooms,price);
-
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			rm.commitTransaction(Id);
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -304,14 +347,21 @@ public class client
 		    }
 		    System.out.println("Adding a new Customer using id:"+arguments.elementAt(1));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
+			Id = rm.startTransaction();
 			int customer=rm.newCustomer(Id);
+			rm.commitTransaction(Id);
+
 			System.out.println("new customer id:"+customer);
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -323,15 +373,21 @@ public class client
 		    System.out.println("Deleting a flight using id: "+arguments.elementAt(1));
 		    System.out.println("Flight Number: "+arguments.elementAt(2));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			flightNum = obj.getInt(arguments.elementAt(2));
+			
+			Id = rm.startTransaction();
 			rm.deleteFlight(Id,flightNum);
-
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			rm.commitTransaction(Id);
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -343,16 +399,21 @@ public class client
 		    System.out.println("Deleting the cars from a particular location  using id: "+arguments.elementAt(1));
 		    System.out.println("Car Location: "+arguments.elementAt(2));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			location = obj.getString(arguments.elementAt(2));
 			
+			Id = rm.startTransaction();
 			rm.deleteCars(Id,location);
-
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			rm.commitTransaction(Id);
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -364,15 +425,21 @@ public class client
 		    System.out.println("Deleting all rooms from a particular location  using id: "+arguments.elementAt(1));
 		    System.out.println("Room Location: "+arguments.elementAt(2));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			location = obj.getString(arguments.elementAt(2));
+			
+			Id = rm.startTransaction();
 			rm.deleteRooms(Id,location);
-
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			rm.commitTransaction(Id);
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -384,14 +451,21 @@ public class client
 		    System.out.println("Deleting a customer from the database using id: "+arguments.elementAt(1));
 		    System.out.println("Customer id: "+arguments.elementAt(2));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			int customer = obj.getInt(arguments.elementAt(2));
+			
+			Id = rm.startTransaction();
 			rm.deleteCustomer(Id,customer);
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			rm.commitTransaction(Id);
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -403,15 +477,23 @@ public class client
 		    System.out.println("Querying a flight using id: "+arguments.elementAt(1));
 		    System.out.println("Flight number: "+arguments.elementAt(2));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			flightNum = obj.getInt(arguments.elementAt(2));
+			
+			Id = rm.startTransaction();
 			int seats=rm.queryFlight(Id,flightNum);
+			rm.commitTransaction(Id);
+
 			System.out.println("Number of seats available:"+seats);
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -423,15 +505,23 @@ public class client
 		    System.out.println("Querying a car location using id: "+arguments.elementAt(1));
 		    System.out.println("Car location: "+arguments.elementAt(2));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			location = obj.getString(arguments.elementAt(2));
+			
+			Id = rm.startTransaction();
 			numCars=rm.queryCars(Id,location);
+			rm.commitTransaction(Id);
+
 			System.out.println("number of Cars at this location:"+numCars);
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -443,15 +533,23 @@ public class client
 		    System.out.println("Querying a room location using id: "+arguments.elementAt(1));
 		    System.out.println("Room location: "+arguments.elementAt(2));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			location = obj.getString(arguments.elementAt(2));
+			
+			Id = rm.startTransaction();
 			numRooms=rm.queryRooms(Id,location);
+			rm.commitTransaction(Id);
+
 			System.out.println("number of Rooms at this location:"+numRooms);
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -463,15 +561,23 @@ public class client
 		    System.out.println("Querying Customer information using id: "+arguments.elementAt(1));
 		    System.out.println("Customer id: "+arguments.elementAt(2));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			int customer = obj.getInt(arguments.elementAt(2));
+			
+			Id = rm.startTransaction();
 			String bill=rm.queryCustomerInfo(Id,customer);
+			rm.commitTransaction(Id);
+
 			System.out.println("Customer info:"+bill);
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;		       
 		    
@@ -483,15 +589,23 @@ public class client
 		    System.out.println("Querying a flight Price using id: "+arguments.elementAt(1));
 		    System.out.println("Flight number: "+arguments.elementAt(2));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			flightNum = obj.getInt(arguments.elementAt(2));
+			
+			Id = rm.startTransaction();
 			price=rm.queryFlightPrice(Id,flightNum);
+			rm.commitTransaction(Id);
+
 			System.out.println("Price of a seat:"+price);
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -503,16 +617,24 @@ public class client
 		    System.out.println("Querying a car price using id: "+arguments.elementAt(1));
 		    System.out.println("Car location: "+arguments.elementAt(2));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			location = obj.getString(arguments.elementAt(2));
+			
+			Id = rm.startTransaction();
 			price=rm.queryCarsPrice(Id,location);
+			rm.commitTransaction(Id);
+
 			System.out.println("Price of a car at this location:"+price);
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
-		    }			    
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
+		    }		    
 		    break;
 //
 		case 16: //querying a Room price
@@ -523,15 +645,23 @@ public class client
 		    System.out.println("Querying a room price using id: "+arguments.elementAt(1));
 		    System.out.println("Room Location: "+arguments.elementAt(2));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			location = obj.getString(arguments.elementAt(2));
+			
+			Id = rm.startTransaction();
 			price=rm.queryRoomsPrice(Id,location);
+			rm.commitTransaction(Id);
+
 			System.out.println("Price of Rooms at this location:"+price);
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -544,15 +674,22 @@ public class client
 		    System.out.println("Customer id: "+arguments.elementAt(2));
 		    System.out.println("Flight number: "+arguments.elementAt(3));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			int customer = obj.getInt(arguments.elementAt(2));
 			flightNum = obj.getInt(arguments.elementAt(3));
+			
+			Id = rm.startTransaction();
 			rm.reserveFlight(Id,customer,flightNum);
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			rm.commitTransaction(Id);
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -566,16 +703,22 @@ public class client
 		    System.out.println("Location: "+arguments.elementAt(3));
 		    
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			int customer = obj.getInt(arguments.elementAt(2));
 			location = obj.getString(arguments.elementAt(3));
 			
+			Id = rm.startTransaction();
 			rm.reserveCar(Id,customer,location);
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			rm.commitTransaction(Id);
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -588,16 +731,22 @@ public class client
 		    System.out.println("Customer id: "+arguments.elementAt(2));
 		    System.out.println("Location: "+arguments.elementAt(3));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			int customer = obj.getInt(arguments.elementAt(2));
 			location = obj.getString(arguments.elementAt(3));
 			
+			Id = rm.startTransaction();
 			rm.reserveRoom(Id,customer,location);
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			rm.commitTransaction(Id);
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
@@ -614,7 +763,6 @@ public class client
 		    System.out.println("Car to book?:"+arguments.elementAt(arguments.size()-2));
 		    System.out.println("Room to book?:"+arguments.elementAt(arguments.size()-1));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			int customer = obj.getInt(arguments.elementAt(2));
 			Vector<Integer> flightNumbers = new Vector<Integer>();
 			for(int i=0;i<arguments.size()-6;i++)
@@ -623,13 +771,20 @@ public class client
 			Car = obj.getBoolean(arguments.elementAt(arguments.size()-2));
 			Room = obj.getBoolean(arguments.elementAt(arguments.size()-1));
 			
+			Id = rm.startTransaction();
 			rm.itinerary(Id,customer,flightNumbers,location,Car,Room);
-			
+			rm.commitTransaction(Id);
 		   
-		    } catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    		    
@@ -649,15 +804,22 @@ public class client
 		    }
 		    System.out.println("Adding a new Customer using id:"+arguments.elementAt(1) + " and cid " +arguments.elementAt(2));
 		    try{
-			Id = obj.getInt(arguments.elementAt(1));
 			Cid = obj.getInt(arguments.elementAt(2));
+			
+			Id = rm.startTransaction();
 			rm.newCustomer(Id,Cid);
+			rm.commitTransaction(Id);
 			System.out.println("new customer id:"+Cid);
-		    }
-		    catch(Exception e){
-			System.out.println("EXCEPTION:");
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+		    } catch(ResImpl.TransactionAbortedException e) {
+				System.out.println("Ooops " + e.getMessage());
+				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println("Ooops " +e.getMessage());
+				e.printStackTrace();
+			} catch(Exception e){
+				System.out.println("EXCEPTION:");
+				System.out.println(e.getMessage());
+				e.printStackTrace();
 		    }
 		    break;
 		    
