@@ -90,6 +90,7 @@ public class ResourceManagerImpl
 	{
 		lm.Lock(tid, key, LockManager.READ);
 		
+			
 		synchronized(m_itemHT){
 			return (RMItem) m_itemHT.get(key);
 		}
@@ -98,8 +99,8 @@ public class ResourceManagerImpl
 	// Writes a data item
 	private void writeData(int tid, String key, RMItem value ) throws DeadlockException
 	{
-		
 		lm.Lock(tid, key, LockManager.WRITE);
+		
 		
 		System.out.println("Writing " + key);
 		
@@ -110,9 +111,9 @@ public class ResourceManagerImpl
 	
 	// Remove the item out of storage
 	protected RMItem removeData(int tid, String key) throws DeadlockException
-	{		
+	{	
 		lm.Lock(tid, key, LockManager.WRITE);
-		
+	
 		synchronized(m_itemHT){
 			return (RMItem)m_itemHT.remove(key);
 		}
