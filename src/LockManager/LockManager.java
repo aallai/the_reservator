@@ -76,21 +76,31 @@ public class LockManager
                             // *** ADD CODE HERE *** to carry out the lock conversion in the
                             // lock table
                         	
-                        	//We get both the transaction object and data object from table, then update the values
-                            DataObj dataKey = new DataObj(xid, strData, LockManager.READ);
-                            TrxnObj trxnKey = new TrxnObj(xid, strData, LockManager.READ);
-                        	DataObj currDataObj = (DataObj)LockManager.lockTable.get(dataKey);
-                        	TrxnObj currTrxnObj = (TrxnObj)LockManager.lockTable.get(trxnKey);
-
-                        	if (currDataObj != null && currTrxnObj != null) {
-                        		currDataObj.lockType = LockManager.WRITE;
-                        		currTrxnObj.lockType = LockManager.WRITE;
-                        		PRINT("- " + "(" + xid + ")" +" Lock Conversion Granted");
-                        	} else {
-                        		System.out.println("Ooops, something went wrong somehwere in the lock table.");
+                        	Vector vect = this.lockTable.elements(dataObj);
+                        	
+                        	for (int i = 0; i < vect.size(); i++) {
+                        		
+                        		DataObj obj = (DataObj) vect.elementAt(i);
+                        		
+                        		if (obj.getXId() == dataObj.getXId()) {
+                        			obj.lockType = LockManager.WRITE;
+                        			break;
+                        		}
                         	}
                         	
+                        	vect = this.lockTable.elements(trxnObj);
                         	
+                        	for (int i = 0; i < vect.size(); i++) {
+                        		
+                        		TrxnObj obj = (TrxnObj) vect.elementAt(i);
+                        		
+                        		if (obj.getXId() == dataObj.getXId()) {
+                        			obj.lockType = LockManager.WRITE;
+                        			break;
+                        		}
+                        	}
+                        	
+                        	PRINT("- " + "(" + xid + ")" +" Lock Conversion Granted");
                         	this.lockTable.printDataLocks();
                         } else {
                             // a lock request that is not lock conversion
