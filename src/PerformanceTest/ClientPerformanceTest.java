@@ -82,7 +82,11 @@ public class ClientPerformanceTest {
 				numberOfThreads = numberOfClients;
 
 				int requestInterval = numberOfClients/load;
-				int estimatedRequestCount = (int)ClientRequestThread.REQUEST_LIMIT/((int)(requestInterval*ClientRequestThread.MILLISECONDS_PER_SECOND));
+				//we use estimated request count to prepare enough data for the test
+				//up to a point we assume the estimation is in line with the time, but after that we may be
+				//overcompensating...so we adjust to avoid have very long setup times before we actually begin the tests.
+				double estimatedRequestCount = (ClientRequestThread.REQUEST_TIME_LIMIT > 20000? ClientRequestThread.REQUEST_TIME_LIMIT/3.0 : ClientRequestThread.REQUEST_TIME_LIMIT);				
+				
 				System.out.println();
 				
 				//each iteration represents one unique data set
@@ -123,7 +127,7 @@ public class ClientPerformanceTest {
 
 						flightNums.add(new Integer(counter));
 
-						for (int k = 0; k < estimatedRequestCount+1; k++) {
+						for (double k = 0; k < estimatedRequestCount+1; k+=1.0) {
 							try{
 								id = rm.startTransaction();
 								rm.addFlight(id, counter, 1, 1);
@@ -147,7 +151,7 @@ public class ClientPerformanceTest {
 
 						flightNums.add(new Integer(counter));
 						//create flight and seats to reserve
-							for (int y = 0; y < (int)(estimatedRequestCount/((1+(1-DATA_SET_SPREAD)))) + 1; y++) {
+							for (double y = 0; y < (int)(estimatedRequestCount/((1+(1-DATA_SET_SPREAD)))) + 1; y+=1.0) {
 								try{
 									id = rm.startTransaction();
 									rm.addFlight(id, counter, 1, 5);
@@ -182,7 +186,7 @@ public class ClientPerformanceTest {
 			}
 		}
 	}
-
+////
 	private void setupThreads(ClientRequestThread.TransactionType transType, int numOfThreads) {
 		int requestInterval = 0;
 		try {
@@ -204,7 +208,7 @@ public class ClientPerformanceTest {
 //
 			ClientRequestThread crt = new ClientRequestThread(transType, server, rm_name, threadDataSet, requestInterval, submitRequestVariation, startTime);
 			clientThreadTable.add(crt);
-			crt.run();	
+			crt.run();	//////
 		} else if (performanceTestType.equalsIgnoreCase(PART_B)) {
 			ClientRequestThread.TransactionType trxnType;					
 			long startTime = System.nanoTime();

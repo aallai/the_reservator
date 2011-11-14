@@ -50,7 +50,7 @@ public class ClientRequestThread extends Thread
 		this.transactionType = transactionType;
 		this.sleepTime = sleepTime;
 		this.sleepVariation = sleepVariation;
-		this.lastRecordedTime = lastRecordedTime;
+		this.lastRecordedTime = 0;
 
 		thread_id = ++threadCount;
 
@@ -72,7 +72,8 @@ public class ClientRequestThread extends Thread
 
 			if (aDataSet != null) {
 				//we assume this is part b)
-				
+				this.lastRecordedTime = lastRecordedTime;
+
 				dataSet = new Vector<Object>();
 				for (int i = 0; i < aDataSet.size(); i++) {
 					customer_id = ((Integer)aDataSet.get(0)).intValue();
@@ -115,7 +116,10 @@ public class ClientRequestThread extends Thread
 		if (dataSet == null) {
 			//do setup
 			
-			int estimatedRequestCount = ClientRequestThread.REQUEST_LIMIT;
+			//we use estimated request count to prepare enough data for the test
+			//up to a point we assume the estimation is in line with the time, but after that we may be
+			//overcompensating...so we adjust to avoid have very long setup times before we actually begin the tests.
+			double estimatedRequestCount = (REQUEST_TIME_LIMIT > 20000? REQUEST_TIME_LIMIT/3.0 : REQUEST_TIME_LIMIT);
 			
 			
 			int theFlightNumber;
@@ -148,7 +152,7 @@ public class ClientRequestThread extends Thread
 			case ITINERARY:
 				System.out.println("Thread #" + thread_id + "Creating itineraries for customer with customer_id: "+customer_id + "...");
 				
-				for (int k = 0; k < REQUEST_LIMIT*2 + 1; k++) {
+				for (double k = 0; k < estimatedRequestCount; k+=1.0) {
 					try{
 						id = rm.startTransaction();
 						rm.addFlight(id, flightNums.get(0).intValue(), 1, 1);
@@ -171,13 +175,13 @@ public class ClientRequestThread extends Thread
 				System.out.println("Thread #" + thread_id + "Booking flights using customer_id: "+customer_id + "...");
 
 				//create flight and seats to reserve
-				for (int y = 0; y < REQUEST_LIMIT*2+1; y++) {
+				for (double y = 0; y < estimatedRequestCount; y+=1.0) {
 					try{
 						id = rm.startTransaction();
 						rm.addFlight(id, flightNums.get(0).intValue(), 1, 5);
 						rm.commitTransaction(id);
 					} catch(Exception e) {
-						System.out.println("Could not perform setup to add " + (REQUEST_LIMIT*2+1) + "flihts");
+						System.out.println("Could not perform setup to add " + y + "th flight");
 						e.printStackTrace();
 					}
 				}
@@ -193,9 +197,12 @@ public class ClientRequestThread extends Thread
 		try {
 			long currentTime;
 			totalTimeInMilliseconds = 0.0;
-			
+			if (lastRecordedTime == 0) lastRecordedTime = System.nanoTime();//
+			System.out.println("Beginning Test for Thread #" + thread_id + ", lastRecordedTime: " + lastRecordedTime);
+			double requestCount = 0.0;
 			//while (i++ < REQUEST_LIMIT) {
 			while (totalTimeInMilliseconds < REQUEST_TIME_LIMIT) {
+				requestCount += 1.0;
 				//System.out.println("Thread #" + thread_id + " time elapsed: " + totalTimeInMilliseconds);
 				currentTime = System.nanoTime();
 				totalTimeInMilliseconds += ((double)(currentTime - lastRecordedTime))/NANOSECONDS_PER_MILLISECOND;
@@ -222,7 +229,7 @@ public class ClientRequestThread extends Thread
 						end = System.nanoTime();
 						results.add(new Double((double)(end-start)/NANOSECONDS_PER_MILLISECOND));
 					}
-
+//
 					break;
 				case QUERY_BILL:
 					//System.out.println("Query Bill");
@@ -269,7 +276,7 @@ public class ClientRequestThread extends Thread
 
 					break;
 				case BOOK_FLIGHT:
-				//	System.out.println("Thread #" + thread_id + "Book Flight");
+					System.out.println("Thread #" + thread_id + "Book Flight - " + requestCount);
 
 					start = System.nanoTime();
 					
@@ -290,7 +297,7 @@ public class ClientRequestThread extends Thread
 						results.add(new Double((double)(end-start)/NANOSECONDS_PER_MILLISECOND));
 					}
 					
-					//System.out.println("Thread #" + thread_id + "BOOKED Flight");
+					System.out.println("Thread #" + thread_id + "BOOKED Flight");
 					
 					break;
 				}

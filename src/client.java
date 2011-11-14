@@ -664,7 +664,7 @@ public class client
 		case 18:  //reserve a car
 		    if(arguments.size()!=4){
 			obj.wrongNumber();
-			break;
+			break;////
 		    }
 		    System.out.println("Reserving a car at a location using id: "+arguments.elementAt(1));
 		    System.out.println("Customer id: "+arguments.elementAt(2));
@@ -884,7 +884,7 @@ public class client
 	    return 25;
 	else 
 		return -1;
-//
+////
     }
 
     public void listCommands()
