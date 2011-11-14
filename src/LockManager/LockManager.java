@@ -83,8 +83,7 @@ public class LockManager
                         		DataObj obj = (DataObj) vect.elementAt(i);
                         		
                         		if (obj.getXId() == dataObj.getXId()) {
-                        			obj.lockType = LockManager.WRITE;
-                        			break;
+                        			obj.setLockType(LockManager.WRITE);
                         		}
                         	}
                         	
@@ -94,8 +93,8 @@ public class LockManager
                         		
                         		TrxnObj obj = (TrxnObj) vect.elementAt(i);
                         		
-                        		if (obj.getXId() == dataObj.getXId()) {
-                        			obj.lockType = LockManager.WRITE;
+                        		if (obj.strData.equals(dataObj.strData)) {
+                        			obj.setLockType(LockManager.WRITE);
                         			break;
                         		}
                         	}

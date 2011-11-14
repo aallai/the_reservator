@@ -8,6 +8,9 @@ import java.rmi.registry.Registry;
 
 import java.util.*;
 import java.io.*;
+
+import javax.transaction.InvalidTransactionException;
+
 import PerformanceTest.ClientPerformanceTest;
 import PerformanceTest.ClientRequestThread;
 
@@ -87,7 +90,7 @@ public class client
 
 			} catch (DeadlockException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				  
 			}
     	} else if (RUNNING_PERMANCE_TEST) {
     		//Determine if input is correct
@@ -268,14 +271,14 @@ public class client
 			rm.addFlight(Id,flightNum,flightSeats,flightPrice);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;
 		case 3:  //new Car
@@ -296,14 +299,14 @@ public class client
 			rm.addCars(Id,location,numCars,price);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;
 		    
@@ -325,14 +328,14 @@ public class client
 			rm.addRooms(Id,location,numRooms,price);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;
 		case 5:  //new Customer
@@ -347,14 +350,14 @@ public class client
 			System.out.println("new customer id:"+customer);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				e.printStackTrace();  
 		    }
 		    break;
 		    
@@ -372,14 +375,14 @@ public class client
 			rm.deleteFlight(Id,flightNum);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;
 		case 7: //delete Car
@@ -396,14 +399,14 @@ public class client
 			rm.deleteCars(Id,location);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;
 		    
@@ -421,14 +424,14 @@ public class client
 			rm.deleteRooms(Id,location);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;
 		case 9: //delete Customer
@@ -445,14 +448,14 @@ public class client
 			rm.deleteCustomer(Id,customer);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;
 		case 10: //querying a flight
@@ -470,14 +473,14 @@ public class client
 			System.out.println("Number of seats available:"+seats);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;
 		    
@@ -496,14 +499,14 @@ public class client
 			System.out.println("number of Cars at this location:"+numCars);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break; 
 		case 12: //querying a Room locations
@@ -521,14 +524,14 @@ public class client
 			System.out.println("number of Rooms at this location:"+numRooms);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;
 		case 13: //querying Customer Information
@@ -546,14 +549,14 @@ public class client
 			System.out.println("Customer info:"+bill);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;
 		case 14: //querying a flight Price
@@ -571,14 +574,14 @@ public class client
 			System.out.println("Price of a seat:"+price);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;
 		case 15: //querying a Car Price
@@ -596,14 +599,14 @@ public class client
 			System.out.println("Price of a car at this location:"+price);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }		    
 		    break;
 //
@@ -622,14 +625,14 @@ public class client
 			System.out.println("Price of Rooms at this location:"+price);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;
 		case 17:  //reserve a flight
@@ -648,14 +651,14 @@ public class client
 			rm.reserveFlight(Id,customer,flightNum);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;  
 		case 18:  //reserve a car
@@ -675,14 +678,14 @@ public class client
 			rm.reserveCar(Id,customer,location);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;
 		    
@@ -702,14 +705,14 @@ public class client
 			rm.reserveRoom(Id,customer,location);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
+				  
 			} catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 		    break;
 		    
@@ -737,15 +740,11 @@ public class client
 			Id = obj.getInt(arguments.get(1));
 			rm.itinerary(Id,customer,flightNumbers,location,Car,Room);		   
 		    } catch(ResImpl.TransactionAbortedException e) {
-				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
-			} catch(ResImpl.InvalidTransactionNumException e) {
-				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
-			} catch(Exception e){
-				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println(e.getMessage());
+			} catch(Exception e){
+				System.out.println(e.getMessage());
 		    }
 		    break;
 		    		    
@@ -771,15 +770,11 @@ public class client
 			rm.newCustomer(Id,Cid);
 			System.out.println("new customer id:"+Cid);
 		    } catch(ResImpl.TransactionAbortedException e) {
-				System.out.println("Ooops " + e.getMessage());
-				e.printStackTrace();
-			} catch(ResImpl.InvalidTransactionNumException e) {
-				System.out.println("Ooops " +e.getMessage());
-				e.printStackTrace();
-			} catch(Exception e){
-				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+			} catch(ResImpl.InvalidTransactionNumException e) {
+				System.out.println(e.getMessage());
+			} catch(Exception e){
+				System.out.println(e.getMessage());
 		    }
 		    break;
 		case 23:
@@ -790,7 +785,7 @@ public class client
 		    } catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
 			break;
 		case 24:
@@ -802,8 +797,17 @@ public class client
 		    } catch(Exception e){
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
-				e.printStackTrace();
+				  
 		    }
+			break;
+		case 25: 
+			try {
+				Id = obj.getInt(arguments.get(1));
+				rm.abortTransaction(Id);
+				System.out.println("Transaction #" + Id + " aborted.");
+			} catch (Exception e) {
+				System.out.println(e.getMessage());
+			} 
 			break;
 		default:
 		    System.out.println("The interface does not support this command.");
@@ -876,8 +880,10 @@ public class client
 		return 23;
 	else if (argument.compareToIgnoreCase("commit") == 0)
 		return 24;
-	else
-	    return 666;
+	else if (argument.compareToIgnoreCase("abort")==0)
+	    return 25;
+	else 
+		return -1;
 //
     }
 

@@ -6,7 +6,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class MiddlewareTransaction {
 
-	static long T_TIMEOUT = 30000;
+	static long T_TIMEOUT = 60000;
 	
 	int tid;
 	Timer timer;

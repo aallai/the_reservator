@@ -598,7 +598,7 @@ public class MiddlewareRMImpl implements ResourceManager {
 		int rmtid = t.rm_table.get(this.hotelsRM);
 		
 		try {
-			hotelsRM.reserveCar(rmtid, customerID, location);
+			hotelsRM.reserveRoom(rmtid, customerID, location);
 		} catch (TransactionAbortedException e) {
 			read_unlock(t);
 			abortTransaction(tid);
