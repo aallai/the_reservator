@@ -85,9 +85,9 @@ public class ClientPerformanceTest {
 				//we use estimated request count to prepare enough data for the test
 				//up to a point we assume the estimation is in line with the time, but after that we may be
 				//overcompensating...so we adjust to avoid have very long setup times before we actually begin the tests.
-				double estimatedRequestCount = (ClientRequestThread.REQUEST_TIME_LIMIT > 20000? ClientRequestThread.REQUEST_TIME_LIMIT/3.0 : ClientRequestThread.REQUEST_TIME_LIMIT);				
-				
-				System.out.println();
+				double estimatedRequestCount = (ClientRequestThread.REQUEST_TIME_LIMIT > 20000? ClientRequestThread.REQUEST_TIME_LIMIT/10.0 : ClientRequestThread.REQUEST_TIME_LIMIT/1.5);				
+				//
+				System.out.println("Creating datasets to handle " + estimatedRequestCount + " request each");
 				
 				//each iteration represents one unique data set
 				while (counter <= numberOfClients*DATA_SET_SPREAD) {
@@ -144,7 +144,7 @@ public class ClientPerformanceTest {
 								e.printStackTrace();
 							}
 						}
-
+//
 						break;//
 					case BOOK_FLIGHT:
 						System.out.println("Creating new flights");
@@ -212,7 +212,7 @@ public class ClientPerformanceTest {
 		} else if (performanceTestType.equalsIgnoreCase(PART_B)) {
 			ClientRequestThread.TransactionType trxnType;					
 			long startTime = System.nanoTime();
-//
+////
 			for (int i = 1; i <= numOfThreads; i++) {
 				System.out.println("Creating Thread #" + i + " - PART_B");
 				
@@ -231,6 +231,23 @@ public class ClientPerformanceTest {
 			}
 			
 			//we must join all spawn threads and create a global average
+			try {
+				for (int k = 0; k < clientThreadTable.size(); k++) {
+					((ClientRequestThread)clientThreadTable.get(k)).join();
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+			
+			double sum = 0.0;
+			double average = 0.0;
+			for (int k = 0; k < clientThreadTable.size(); k++) {
+				sum += ((ClientRequestThread)clientThreadTable.get(k)).average;
+			}
+			average = sum/clientThreadTable.size();
+			
+			System.out.println("\n\nOverall average response time in milliseconds = " + average);
 		}
 	}
 

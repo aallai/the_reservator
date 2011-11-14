@@ -32,7 +32,7 @@ public class client
 {//
     static String message = "blank";
     static ResourceManager rm = null;
-
+//
     private static boolean TESTING_LOCK_MANAGER = false;
     private static boolean RUNNING_PERMANCE_TEST = false;
     private static boolean COMMAND_LINE = false;
@@ -52,7 +52,7 @@ public class client
     	
     	return ClientRequestThread.TransactionType.VOID;
     }
-    
+    //
     public static void main(String args[]) {
     	if (args.length == 1) {
 			COMMAND_LINE = true;	
@@ -279,7 +279,7 @@ public class client
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
 				  
-		    }
+		    }//
 		    break;
 		case 3:  //new Car
 		    if(arguments.size()!=5){
@@ -599,7 +599,7 @@ public class client
 			System.out.println("Price of a car at this location:"+price);
 		    } catch(ResImpl.TransactionAbortedException e) {
 				System.out.println("Ooops " + e.getMessage());
-				  
+			//	  
 			} catch(ResImpl.InvalidTransactionNumException e) {
 				System.out.println("Ooops " +e.getMessage());
 				  
@@ -664,7 +664,7 @@ public class client
 		case 18:  //reserve a car
 		    if(arguments.size()!=4){
 			obj.wrongNumber();
-			break;////
+			break;//////
 		    }
 		    System.out.println("Reserving a car at a location using id: "+arguments.elementAt(1));
 		    System.out.println("Customer id: "+arguments.elementAt(2));

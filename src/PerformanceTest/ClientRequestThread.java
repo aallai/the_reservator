@@ -31,6 +31,7 @@ public class ClientRequestThread extends Thread
 	private int sleepVariation;
 
 	public Vector<Double> results = new Vector<Double>();
+	public double average = 0.0;
 
 	private ResourceManager rm = null;
 	private int id;//
@@ -62,8 +63,8 @@ public class ClientRequestThread extends Thread
 			rm = (ResourceManager) registry.lookup(rm_name);
 			if(rm!=null)
 			{
-				System.out.println("Successful");
-				System.out.println("Connected to RM");
+//				System.out.println("Successful");
+//				System.out.println("Connected to RM");
 			}
 			else
 			{
@@ -198,7 +199,7 @@ public class ClientRequestThread extends Thread
 			long currentTime;
 			totalTimeInMilliseconds = 0.0;
 			if (lastRecordedTime == 0) lastRecordedTime = System.nanoTime();//
-			System.out.println("Beginning Test for Thread #" + thread_id + ", lastRecordedTime: " + lastRecordedTime);
+			System.out.println("Beginning Test for Thread #" + thread_id);
 			double requestCount = 0.0;
 			//while (i++ < REQUEST_LIMIT) {
 			while (totalTimeInMilliseconds < REQUEST_TIME_LIMIT) {
@@ -276,7 +277,7 @@ public class ClientRequestThread extends Thread
 
 					break;
 				case BOOK_FLIGHT:
-					System.out.println("Thread #" + thread_id + "Book Flight - " + requestCount);
+				//	System.out.println("Thread #" + thread_id + "Book Flight - " + requestCount);
 
 					start = System.nanoTime();
 					
@@ -297,7 +298,7 @@ public class ClientRequestThread extends Thread
 						results.add(new Double((double)(end-start)/NANOSECONDS_PER_MILLISECOND));
 					}
 					
-					System.out.println("Thread #" + thread_id + "BOOKED Flight");
+			//		System.out.println("Thread #" + thread_id + "BOOKED Flight");
 					
 					break;
 				}
@@ -326,9 +327,9 @@ public class ClientRequestThread extends Thread
 		try {
 			System.out.println("Thread #" + thread_id + " time elapsed: " + totalTimeInMilliseconds);
 			System.out.println("Thread #" + thread_id + " sumOfResponseTimes: " + sum + ", numOfResponses: " + results.size());
-			averageResponseTime = sum / results.size();
+			average = sum / results.size();
 
-			System.out.println("Thread #" + thread_id + " Average Response Time: " + (averageResponseTime) + " milliseconds");
+			System.out.println("Thread #" + thread_id + " Average Response Time: " + (average) + " milliseconds");
 		} catch(ArithmeticException e) {
 			System.out.println("Thread #" + thread_id + "Ooops, looks like we didn't gather any response time data...");
 		}
