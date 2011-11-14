@@ -195,6 +195,10 @@ public class ResourceManagerImpl
 		}else{			
 			Customer old = new Customer(cust.getID());
 			old.m_Reservations = (RMHashtable) cust.getReservations().clone();
+			ReservedItem old_res = (ReservedItem) old.m_Reservations.get(key);
+			if (old_res != null) {
+				old.m_Reservations.put(key, old_res.copy());
+			}
 			
 			System.out.println();
 			
