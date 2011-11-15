@@ -7,7 +7,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
 import ResInterface.ResourceManager;
-
+//
 public class ServerRMImpl extends ResourceManagerImpl {
 	protected String name;
 	

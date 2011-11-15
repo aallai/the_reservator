@@ -279,7 +279,7 @@ public class client
 				System.out.println("EXCEPTION:");
 				System.out.println(e.getMessage());
 				  
-		    }//
+		    }
 		    break;
 		case 3:  //new Car
 		    if(arguments.size()!=5){

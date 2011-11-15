@@ -44,7 +44,6 @@ public class ClientPerformanceTest {
 	private Vector<Vector<Object>> dataSets = new Vector<Vector<Object>>();
 
 	private SecureRandom randomGen = new SecureRandom();
-	private double requestTimeLimit;
 	
 	public ClientPerformanceTest(String performanceTestType, String server, String rm_name, ClientRequestThread.TransactionType transactionType1, ClientRequestThread.TransactionType transactionType2, int numberOfClients, double requestTimeLimit, int load, 
 			int submitRequestVariation) {
@@ -56,14 +55,12 @@ public class ClientPerformanceTest {
 		this.load = load;
 		this.submitRequestVariation = submitRequestVariation;
 		this.performanceTestType = performanceTestType;
-		this.requestTimeLimit = requestTimeLimit;
-
 		ClientRequestThread.REQUEST_TIME_LIMIT = requestTimeLimit;
 		
 		/*
 		 * Because part b) involves concurrency to avoid any chance of disturbing our results
 		 * we allocate all of the data we'll need here before setting up and running the threads.
-		 *///g
+		 */
 		if (performanceTestType.equalsIgnoreCase(PART_B)) {
 			int id;
 			int counter = 0;
@@ -72,7 +69,7 @@ public class ClientPerformanceTest {
 			System.out.println("Creating Threads - PART_B");
 			
 			try 
-			{////
+			{
 				Registry registry = LocateRegistry.getRegistry(server);
 				ResourceManager rm = (ResourceManager) registry.lookup(rm_name);
 				if(rm == null) {
@@ -81,7 +78,6 @@ public class ClientPerformanceTest {
 
 				numberOfThreads = numberOfClients;
 
-				int requestInterval = numberOfClients/load;
 				//we use estimated request count to prepare enough data for the test
 				//up to a point we assume the estimation is in line with the time, but after that we may be
 				//overcompensating...so we adjust to avoid have very long setup times before we actually begin the tests.
@@ -144,8 +140,8 @@ public class ClientPerformanceTest {
 								e.printStackTrace();
 							}
 						}
-//
-						break;//
+
+						break;
 					case BOOK_FLIGHT:
 						System.out.println("Creating new flights");
 
@@ -186,11 +182,11 @@ public class ClientPerformanceTest {
 			}
 		}
 	}
-////
+
 	private void setupThreads(ClientRequestThread.TransactionType transType, int numOfThreads) {
-		int requestInterval = 0;
+		double requestInterval = 0.0;
 		try {
-			requestInterval = numberOfClients/load;
+			requestInterval = numberOfClients/load;	//this is in seconds
 		} catch (ArithmeticException e) {
 			requestInterval = 0;
 		}
@@ -199,20 +195,20 @@ public class ClientPerformanceTest {
 			System.out.println("Creating Thread #1 - PART_A");
 			long startTime = System.nanoTime();
 
-			ClientRequestThread crt = new ClientRequestThread(transType, server, rm_name, threadDataSet, 0, 0, startTime);
+			ClientRequestThread crt = new ClientRequestThread(transType, server, rm_name, threadDataSet, 0.0, 0, startTime);
 			clientThreadTable.add(crt);
 			crt.run();
 		} else if (performanceTestType.equalsIgnoreCase(PART_CMD_LINE)) {
 			System.out.println("Creating Thread #1 - CMD_LINE_PART");
 			long startTime = System.nanoTime();
-//
+
 			ClientRequestThread crt = new ClientRequestThread(transType, server, rm_name, threadDataSet, requestInterval, submitRequestVariation, startTime);
 			clientThreadTable.add(crt);
 			crt.run();	//////
 		} else if (performanceTestType.equalsIgnoreCase(PART_B)) {
 			ClientRequestThread.TransactionType trxnType;					
 			long startTime = System.nanoTime();
-////
+
 			for (int i = 1; i <= numOfThreads; i++) {
 				System.out.println("Creating Thread #" + i + " - PART_B");
 				
@@ -230,7 +226,7 @@ public class ClientPerformanceTest {
 				crt.start();
 			}
 			
-			//we must join all spawn threads and create a global average
+			//we must join all spawn threads and calculate a total average
 			try {
 				for (int k = 0; k < clientThreadTable.size(); k++) {
 					((ClientRequestThread)clientThreadTable.get(k)).join();

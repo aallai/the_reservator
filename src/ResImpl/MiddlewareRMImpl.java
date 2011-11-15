@@ -8,7 +8,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.lang.Math;
-
+//
 
 public class MiddlewareRMImpl implements ResourceManager {
 	protected ResourceManager flightsRM;

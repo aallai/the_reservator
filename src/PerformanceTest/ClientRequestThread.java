@@ -27,14 +27,14 @@ public class ClientRequestThread extends Thread
 	private double totalTimeInMilliseconds = 0.0;
 
 	private TransactionType transactionType;
-	private int sleepTime;
+	private double sleepTime;
 	private int sleepVariation;
 
 	public Vector<Double> results = new Vector<Double>();
 	public double average = 0.0;
 
 	private ResourceManager rm = null;
-	private int id;//
+	private int id;
 	private int thread_id;
 	
 	private int customer_id;
@@ -47,7 +47,7 @@ public class ClientRequestThread extends Thread
 	
 	private long lastRecordedTime;
 
-	public ClientRequestThread(TransactionType transactionType, String server, String rm_name, Vector<Object> aDataSet, int sleepTime, int sleepVariation, long lastRecordedTime) {
+	public ClientRequestThread(TransactionType transactionType, String server, String rm_name, Vector<Object> aDataSet, double sleepTime, int sleepVariation, long lastRecordedTime) {
 		this.transactionType = transactionType;
 		this.sleepTime = sleepTime;
 		this.sleepVariation = sleepVariation;
@@ -192,7 +192,7 @@ public class ClientRequestThread extends Thread
 				break;
 			}
 		} else {
-			//setup has been done in ClientPerformanceTest class.
+			//setup has been done in ClientPerformanceTest class.//
 		}
 
 		try {
@@ -307,7 +307,7 @@ public class ClientRequestThread extends Thread
 
 				//For variety we choose a sleep time equally distributed within an interval [sleepTime − x; sleepTime + x]
 				// where x is the variation..
-				sleepTimeWithVariation = (long) (sleepTime*MILLISECONDS_PER_SECOND + Math.random()*2*sleepVariation*MILLISECONDS_PER_SECOND - sleepVariation*MILLISECONDS_PER_SECOND);
+				sleepTimeWithVariation = (long) (sleepTime*MILLISECONDS_PER_SECOND + Math.random()*2*sleepVariation - sleepVariation);
 				if (responseTime < sleepTimeWithVariation) {
 					Thread.sleep(sleepTimeWithVariation-responseTime);	//sleepin to control the load on middleware server
 				}
