@@ -98,11 +98,11 @@ public class client
 	    System.out.println("Type \"help\" for list of supported commands");
 	    
 	    while(true){
-	    	
+
 			System.out.print("\n>");
 			try{
 			    //read the next command
-			    command = stdin.readLine();
+			    command =stdin.readLine();
 			}
 			catch (IOException io){
 			    System.out.println("Unable to read from standard in");
@@ -110,10 +110,14 @@ public class client
 			}
 			//remove heading and trailing white space
 			
-			if (command == null) {
-				System.out.println("What the hell");
-			}
+			command=command.trim();
+			arguments=obj.parse(command);
 			
+			// fixer upper
+			if (arguments.size() == 0) {
+				continue;
+			}
+		
 			command=command.trim();
 			arguments=obj.parse(command);
 			
