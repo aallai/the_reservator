@@ -745,7 +745,8 @@ public class MiddlewareRMImpl implements ResourceManager {
 				} catch (InvalidTransactionNumException e) {
 					e.printStackTrace();
 				} catch (RemoteException e) {
-					e.printStackTrace();
+					// squelch because of runnable interface, next operation on failed rm 
+					// will raise it
 				}
 			}
 		};
@@ -786,15 +787,18 @@ public class MiddlewareRMImpl implements ResourceManager {
 		t.lock.writeLock().unlock();
 	}
 	
-	private void add_rm(MiddlewareTransaction t, ResourceManager rm)
+	private void add_rm(MiddlewareTransaction t, ResourceManager rm) throws RemoteException
 	{
 		if(t.rm_table.get(rm) == null) {
-			try {
-				t.rm_table.put(rm, rm.startTransaction());
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			}
+			t.rm_table.put(rm, rm.startTransaction());
 		}
+	}
+	
+	public void reset_timer(int tid) throws RemoteException, InvalidTransactionNumException
+	{
+		MiddlewareTransaction t = read_lock(tid);
+		set_timer(t);
+		read_unlock(t);
 	}
 }
 

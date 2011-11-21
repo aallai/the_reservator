@@ -953,4 +953,9 @@ public class ResourceManagerImpl
 		}
 		return true;
     }
+    
+    public void reset_timer(int tid) throws RemoteException
+    {
+    	return;  // nop
+    }
 }

@@ -8,6 +8,8 @@ import java.util.Vector;
 
 import ResInterface.ResourceManager;
 
+import LockManager.DeadlockException;
+import LockManager.LockManager;
 import PerformanceTest.ClientRequestThread;
 import PerformanceTest.ClientRequestThread.TransactionType;
 //d
@@ -18,6 +20,11 @@ public class ClientPerformanceTest {
 		MIXTURE
 	}
 
+	private static boolean TESTING_LOCK_MANAGER = false;
+    private static boolean RUNNING_PERMANCE_TEST = false;
+    private static boolean COMMAND_LINE = false;
+	
+    private static ClientPerformanceTest performanceManager;
 	String server;
 	String rm_name;
 	ClientRequestThread.TransactionType transactionType1;
@@ -45,6 +52,113 @@ public class ClientPerformanceTest {
 
 	private SecureRandom randomGen = new SecureRandom();
 	private double requestTimeLimit;
+	
+	public static ClientRequestThread.TransactionType stringToTransactionType(String str) {
+    	if (str.equalsIgnoreCase("new_customer")) {
+    		return ClientRequestThread.TransactionType.NEW_CUSTOMER;
+    	} else if (str.equalsIgnoreCase("itinerary")) {
+    		return ClientRequestThread.TransactionType.ITINERARY;
+    	} else if (str.equalsIgnoreCase("book_flight")) {
+    		return ClientRequestThread.TransactionType.BOOK_FLIGHT;
+    	} else if (str.equalsIgnoreCase("query_bill")) {
+    		return ClientRequestThread.TransactionType.QUERY_BILL;
+    	}
+    	
+    	return ClientRequestThread.TransactionType.VOID;
+    }
+	
+	public static void main(String args[]) {
+    	if (args.length == 1) {
+			COMMAND_LINE = true;	
+    	} else if (args.length > 1) {
+    		if (args[1].equalsIgnoreCase("part_a") || args[1].equalsIgnoreCase("part_b")) {
+    			RUNNING_PERMANCE_TEST = true;
+    		} else if (args[1].equalsIgnoreCase("lock_manager")) {
+    			TESTING_LOCK_MANAGER = true;
+    		} else {
+    			COMMAND_LINE = true;
+    		}
+    	} else {
+			System.out.println ("Usage: java client rmihost:rmi_name <CLIENT_MODE> <trxnType1> <trxnType2> <numberOfClients> <requestTimeLimit> [load] [submit_request_variation]" 
+					+ "\nCLIENT_MODE = {part_a; part_b; part_c; lock_manager; default=cmdline}"
+					+ "\ntrxnType<N> = {new_customer; book_flight; itinerary}"); 			
+			System.exit(1);	
+    	}
+    	
+    	if (TESTING_LOCK_MANAGER) {
+    		System.out.println("Testing Lock Manager");
+    		LockManager lm = new LockManager();
+    		
+    		try {
+				lm.Lock(1, "pizza", LockManager.READ);
+				lm.Lock(1, "ham", LockManager.WRITE);
+				
+				lm.Lock(1, "ham", LockManager.READ);
+				lm.Lock(1, "pizza", LockManager.WRITE);
+				
+				//lm.Lock(2, "ham", LockManager.READ); - deadlock
+				lm.UnlockAll(1);
+				lm.Lock(3, "ham", LockManager.READ);
+				lm.Lock(4, "ham", LockManager.READ);
+				//lm.Lock(4, "ham", LockManager.WRITE); - deadlock
+
+			} catch (DeadlockException e) {
+				// TODO Auto-generated catch block
+				  
+			}
+    	} else if (RUNNING_PERMANCE_TEST) {
+    		//Determine if input is correct
+    	    if (args.length >= 5) {
+        		//Run performance tests with ClientPerformanceTest class!
+        	    String server = "";
+        	    String rm_name = "";
+        	    String testType = "";
+        	    ClientRequestThread.TransactionType transactionType1;
+        	    ClientRequestThread.TransactionType transactionType2;
+        	    int load = 0;	//set to -1 when running part a)
+        	    int submitRequestVariation = 0;
+        	    int numberOfClients = 10;
+        	    
+    			server = args[0]; 
+    			
+    		    String elements[] = server.split(":");
+    		    ////
+    		    if (elements.length != 2) {
+    		    	System.err.println("[rmihost] must be in the format [server:rm_name]");
+    		    }
+    		    
+    		    server = elements[0];
+    		    rm_name = elements[1];
+    		    
+    		    testType = args[1];
+    		    
+    		    transactionType1 = stringToTransactionType(args[2]);
+    		    transactionType2 = stringToTransactionType(args[3]);
+    		    //
+    		    numberOfClients = Integer.parseInt(args[4]);
+    		    
+    		    int requestTimeLimit = Integer.parseInt(args[5]);
+
+    		    try {
+    		    	load = Integer.parseInt(args[6]);
+    		    	submitRequestVariation = Integer.parseInt(args[7]);
+    		    } catch (Exception e) {
+    		    	//this is okay - optional parameters
+    		    }
+    		    
+        		System.out.println("Running Performance Tests.");
+    		    
+        		performanceManager = new ClientPerformanceTest(testType, server, rm_name, transactionType1, transactionType2, numberOfClients, requestTimeLimit, load, submitRequestVariation);
+        		performanceManager.start();
+        		
+    	    } else {
+    			System.out.println ("Usage: java client rmihost:rmi_name CLIENT_MODE <trxnType1> <trxnType2> <numberOfClients> <requestTimeLimit> [load] [submit_request_variation]" 
+    					+ "\nCLIENT_MODE = {part_a; part_b; part_c; lock_manager; default=cmdline}"
+    					+ "\ntrxnType<N> = {new_customer; book_flight; itinerary}"); 
+    			System.exit(1); 
+    	    }
+    	}
+    }
 	
 	public ClientPerformanceTest(String performanceTestType, String server, String rm_name, ClientRequestThread.TransactionType transactionType1, ClientRequestThread.TransactionType transactionType2, int numberOfClients, double requestTimeLimit, int load, 
 			int submitRequestVariation) {
