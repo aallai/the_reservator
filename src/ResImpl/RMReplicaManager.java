@@ -42,7 +42,7 @@ public class RMReplicaManager implements ResourceManager {
 	
 	private int round_robin()
 	{
-		return next++ % this.rm_table.size();
+		return next++ % this.rm_table.keySet().size();
 	}
 
 	private int get_tid()
@@ -317,23 +317,7 @@ public class RMReplicaManager implements ResourceManager {
 		check_tid(tid);
 		
 		// reset timers at each middleware
-		try {
-			for (Iterator<ResourceManager> i = this.rm_table.keySet().iterator(); i.hasNext(); ) {
-				try {
-					ResourceManager rm = i.next();
-					rm.reset_timer(lookup_tid(rm, tid));
-				} catch (RemoteException e) {
-					i.remove();
-				} 
-			}
-		} catch (InvalidTransactionNumException e) {  // at least one timer expired, abort all
-			abortTransaction(tid);
-			throw new InvalidTransactionNumException(tid);
-		}
-		
-		if (replicas_available() == 0) {
-			shutdown();
-		}
+		reset_timer(tid);
 		
 		int flight = 0;
 		
@@ -372,23 +356,7 @@ public class RMReplicaManager implements ResourceManager {
 		check_tid(tid);
 		
 		// reset timers at each middleware
-		try {
-			for (Iterator<ResourceManager> i = this.rm_table.keySet().iterator(); i.hasNext(); ) {
-				try {
-					ResourceManager rm = i.next();
-					rm.reset_timer(lookup_tid(rm, tid));
-				} catch (RemoteException e) {
-					i.remove();
-				} 
-			}
-		} catch (InvalidTransactionNumException e) {  // at least one timer expired, abort all
-			abortTransaction(tid);
-			throw new InvalidTransactionNumException(tid);
-		}
-		
-		if (replicas_available() == 0) {
-			shutdown();
-		}
+		reset_timer(tid);
 		
 		int cars = 0;
 		
@@ -422,73 +390,307 @@ public class RMReplicaManager implements ResourceManager {
 	}
 
 	@Override
-	public int queryRooms(int tid, String location) throws RemoteException,
-			TransactionAbortedException, InvalidTransactionNumException {
-		// TODO Auto-generated method stub
-		return 0;
+	public int queryRooms(int tid, String location) throws TransactionAbortedException, InvalidTransactionNumException 
+	{
+		check_tid(tid);
+		
+		reset_timer(tid);
+		
+		int rooms = 0;
+		
+		try {
+			while (replicas_available() > 0) {
+				
+				ResourceManager rm = null;
+				
+				try {
+					int n = round_robin();
+					rm = (ResourceManager) this.rm_table.keySet().toArray()[n];
+					rooms = rm.queryRooms(lookup_tid(rm, tid), location);
+					break;
+				} catch (RemoteException e) {
+					this.rm_table.remove(rm);
+				}
+			}
+		} catch (TransactionAbortedException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, e.getMessage());
+		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
+			abortTransaction(tid);
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		if (replicas_available() == 0) {
+			shutdown();
+		}
+		
+		return rooms;
 	}
 
 	@Override
-	public String queryCustomerInfo(int tid, int customer)
-			throws RemoteException, TransactionAbortedException,
-			InvalidTransactionNumException {
-		// TODO Auto-generated method stub
-		return null;
+	public String queryCustomerInfo(int tid, int customer) throws TransactionAbortedException, InvalidTransactionNumException 
+	{
+		check_tid(tid);
+		
+		// reset timers at each middleware
+		reset_timer(tid);
+		
+		String bill = null;
+		
+		try {
+			while (replicas_available() > 0) {
+				
+				ResourceManager rm = null;
+				
+				try {
+					int n = round_robin();
+					rm = (ResourceManager) this.rm_table.keySet().toArray()[n];
+					bill = rm.queryCustomerInfo(lookup_tid(rm, tid), customer);
+					break;
+				} catch (RemoteException e) {
+					this.rm_table.remove(rm);
+				}
+			}
+		} catch (TransactionAbortedException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, e.getMessage());
+		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
+			abortTransaction(tid);
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		if (replicas_available() == 0) {
+			shutdown();
+		}
+		
+		return bill;
 	}
 
 	@Override
-	public int queryFlightPrice(int tid, int flightNumber)
-			throws RemoteException, TransactionAbortedException,
-			InvalidTransactionNumException {
-		// TODO Auto-generated method stub
-		return 0;
+	public int queryFlightPrice(int tid, int flightNumber) throws TransactionAbortedException, InvalidTransactionNumException 
+	{
+		check_tid(tid);
+		
+		// reset timers at each middleware
+		reset_timer(tid);
+		
+		int price = 0;
+		
+		try {
+			while (replicas_available() > 0) {
+				
+				ResourceManager rm = null;
+				
+				try {
+					int n = round_robin();
+					rm = (ResourceManager) this.rm_table.keySet().toArray()[n];
+					price = rm.queryFlightPrice(lookup_tid(rm, tid), flightNumber);
+					break;
+				} catch (RemoteException e) {
+					this.rm_table.remove(rm);
+				}
+			}
+		} catch (TransactionAbortedException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, e.getMessage());
+		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
+			abortTransaction(tid);
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		if (replicas_available() == 0) {
+			shutdown();
+		}
+		
+		return price;
 	}
 
 	@Override
-	public int queryCarsPrice(int tid, String location) throws RemoteException,
-			TransactionAbortedException, InvalidTransactionNumException {
-		// TODO Auto-generated method stub
-		return 0;
+	public int queryCarsPrice(int tid, String location) throws TransactionAbortedException, InvalidTransactionNumException 
+	{
+		check_tid(tid);
+		
+		// reset timers at each middleware
+		reset_timer(tid);
+		
+		int price = 0;
+		
+		try {
+			while (replicas_available() > 0) {
+				
+				ResourceManager rm = null;
+				
+				try {
+					int n = round_robin();
+					rm = (ResourceManager) this.rm_table.keySet().toArray()[n];
+					price = rm.queryCarsPrice(lookup_tid(rm, tid), location);
+					break;
+				} catch (RemoteException e) {
+					this.rm_table.remove(rm);
+				}
+			}
+		} catch (TransactionAbortedException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, e.getMessage());
+		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
+			abortTransaction(tid);
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		if (replicas_available() == 0) {
+			shutdown();
+		}
+		
+		return price;
 	}
 
 	@Override
-	public int queryRoomsPrice(int tid, String location)
-			throws RemoteException, TransactionAbortedException,
-			InvalidTransactionNumException {
-		// TODO Auto-generated method stub
-		return 0;
+	public int queryRoomsPrice(int tid, String location) throws TransactionAbortedException, InvalidTransactionNumException 
+	{
+		check_tid(tid);
+		
+		// reset timers at each middleware
+		reset_timer(tid);
+		
+		int price = 0;
+		
+		try {
+			while (replicas_available() > 0) {
+				
+				ResourceManager rm = null;
+				
+				try {
+					int n = round_robin();
+					rm = (ResourceManager) this.rm_table.keySet().toArray()[n];
+					price = rm.queryRoomsPrice(lookup_tid(rm, tid), location);
+					break;
+				} catch (RemoteException e) {
+					this.rm_table.remove(rm);
+				}
+			}
+		} catch (TransactionAbortedException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, e.getMessage());
+		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
+			abortTransaction(tid);
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		if (replicas_available() == 0) {
+			shutdown();
+		}
+		
+		return price;
 	}
 
 	@Override
-	public void reserveFlight(int tid, int customer, int flightNumber)
-			throws RemoteException, TransactionAbortedException,
-			InvalidTransactionNumException {
-		// TODO Auto-generated method stub
+	public void reserveFlight(int tid, int customer, int flightNumber) throws TransactionAbortedException, InvalidTransactionNumException 
+	{
+		check_tid(tid);
+		
+		try {
+			for (Iterator<ResourceManager> i = this.rm_table.keySet().iterator(); i.hasNext(); ) {
+				try {
+					ResourceManager rm = i.next();
+					rm.reserveFlight(lookup_tid(rm, tid), customer, flightNumber);
+				} catch (RemoteException e) {
+					i.remove();
+				} 
+			}
+		} catch (TransactionAbortedException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, e.getMessage());
+		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
+			abortTransaction(tid);
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		if (replicas_available() == 0) {
+			shutdown();
+		}
 		
 	}
 
 	@Override
-	public void reserveCar(int tid, int customer, String location)
-			throws RemoteException, TransactionAbortedException,
-			InvalidTransactionNumException {
-		// TODO Auto-generated method stub
+	public void reserveCar(int tid, int customer, String location) throws TransactionAbortedException, InvalidTransactionNumException 
+	{
+		check_tid(tid);
 		
+		try {
+			for (Iterator<ResourceManager> i = this.rm_table.keySet().iterator(); i.hasNext(); ) {
+				try {
+					ResourceManager rm = i.next();
+					rm.reserveCar(lookup_tid(rm, tid), customer, location);
+				} catch (RemoteException e) {
+					i.remove();
+				} 
+			}
+		} catch (TransactionAbortedException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, e.getMessage());
+		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
+			abortTransaction(tid);
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		if (replicas_available() == 0) {
+			shutdown();
+		}
 	}
 
 	@Override
-	public void reserveRoom(int tid, int customer, String locationd)
-			throws RemoteException, TransactionAbortedException,
-			InvalidTransactionNumException {
-		// TODO Auto-generated method stub
+	public void reserveRoom(int tid, int customer, String location) throws TransactionAbortedException, InvalidTransactionNumException 
+	{
+		check_tid(tid);
 		
+		try {
+			for (Iterator<ResourceManager> i = this.rm_table.keySet().iterator(); i.hasNext(); ) {
+				try {
+					ResourceManager rm = i.next();
+					rm.reserveRoom(lookup_tid(rm, tid), customer, location);
+				} catch (RemoteException e) {
+					i.remove();
+				} 
+			}
+		} catch (TransactionAbortedException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, e.getMessage());
+		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
+			abortTransaction(tid);
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		if (replicas_available() == 0) {
+			shutdown();
+		}
 	}
 
 	@Override
-	public void itinerary(int tid, int customer, Vector<Integer> flightNumbers,
-			String location, boolean Car, boolean Room) throws RemoteException,
-			TransactionAbortedException, InvalidTransactionNumException {
-		// TODO Auto-generated method stub
+	public void itinerary(int tid, int customer, Vector<Integer> flightNumbers, String location, boolean Car, boolean Room) 
+			throws TransactionAbortedException, InvalidTransactionNumException 
+	{
+		check_tid(tid);
 		
+		try {
+			for (Iterator<ResourceManager> i = this.rm_table.keySet().iterator(); i.hasNext(); ) {
+				try {
+					ResourceManager rm = i.next();
+					rm.itinerary(lookup_tid(rm, tid), customer, flightNumbers, location, Car, Room);
+				} catch (RemoteException e) {
+					i.remove();
+				} 
+			}
+		} catch (TransactionAbortedException e) {
+			abortTransaction(tid);
+			throw new TransactionAbortedException(tid, e.getMessage());
+		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
+			abortTransaction(tid);
+			throw new InvalidTransactionNumException(tid);
+		}
+		
+		if (replicas_available() == 0) {
+			shutdown();
+		}
 	}
 
 	@Override
@@ -527,13 +729,13 @@ public class RMReplicaManager implements ResourceManager {
 			throw new InvalidTransactionNumException(tid);
 		}
 		
+		if (replicas_available() == 0) {
+			shutdown();
+		}
+		
 		for (Iterator<ResourceManager> i = this.rm_table.keySet().iterator(); i.hasNext(); ) {
 			ResourceManager rm = i.next();
 			this.rm_table.get(rm).remove(tid);
-		}
-		
-		if (replicas_available() == 0) {
-			shutdown();
 		}
 		
 		return true;
@@ -583,6 +785,10 @@ public class RMReplicaManager implements ResourceManager {
 		} catch (InvalidTransactionNumException e) {  // at least one timer expired, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
+		}
+		
+		if (replicas_available() == 0) {
+			shutdown();
 		}
 	}
 }
