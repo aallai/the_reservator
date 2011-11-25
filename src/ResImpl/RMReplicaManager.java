@@ -77,7 +77,8 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			e.tid = tid;
+			throw e;
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -104,7 +105,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -131,7 +132,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -163,7 +164,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -192,7 +193,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -219,7 +220,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -246,7 +247,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -273,7 +274,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -300,7 +301,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -337,7 +338,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -376,7 +377,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -414,7 +415,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -453,7 +454,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -492,7 +493,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -531,7 +532,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -570,7 +571,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -599,7 +600,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -627,7 +628,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -654,7 +655,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
@@ -682,7 +683,7 @@ public class RMReplicaManager implements ResourceManager {
 			}
 		} catch (TransactionAbortedException e) {
 			abortTransaction(tid);
-			throw new TransactionAbortedException(tid, e.getMessage());
+			throw new TransactionAbortedException(tid, e.reason);
 		} catch (InvalidTransactionNumException e) {                     // transactions may time out at middlewares, if one does, abort all
 			abortTransaction(tid);
 			throw new InvalidTransactionNumException(tid);
