@@ -4,8 +4,10 @@ import java.math.BigInteger;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Vector;
 
+import ResImpl.RMReplicaManager;
 import ResInterface.ResourceManager;
 
 import LockManager.DeadlockException;
@@ -21,7 +23,7 @@ public class ClientPerformanceTest {
 	}
 
 	private static boolean TESTING_LOCK_MANAGER = false;
-    private static boolean RUNNING_PERMANCE_TEST = false;
+    private static boolean RUNNING_PERMANCE_TEST = true;
     private static boolean COMMAND_LINE = false;
 	
     private static ClientPerformanceTest performanceManager;
@@ -51,6 +53,9 @@ public class ClientPerformanceTest {
 	private Vector<Vector<Object>> dataSets = new Vector<Vector<Object>>();
 
 	private SecureRandom randomGen = new SecureRandom();
+	private ArrayList<ResourceManager> rmObjList = new ArrayList<ResourceManager>();
+    
+	public static Vector<String> rm_name_list = new Vector<String>();
 	
 	public static ClientRequestThread.TransactionType stringToTransactionType(String str) {
     	if (str.equalsIgnoreCase("new_customer")) {
@@ -78,7 +83,7 @@ public class ClientPerformanceTest {
     			COMMAND_LINE = true;
     		}
     	} else {
-			System.out.println ("Usage: java client rmihost:rmi_name <CLIENT_MODE> <trxnType1> <trxnType2> <numberOfClients> <requestTimeLimit> [load] [submit_request_variation]" 
+			System.out.println ("Usage: java client <CLIENT_MODE> <trxnType1> <trxnType2> <numberOfClients> <requestTimeLimit> [load] [submit_request_variation] [middleware0] ... [middlewareN]" 
 					+ "\nCLIENT_MODE = {part_a; part_b; part_c; lock_manager; default=cmdline}"
 					+ "\ntrxnType<N> = {new_customer; book_flight; itinerary}"); 			
 			System.exit(1);	
@@ -107,51 +112,43 @@ public class ClientPerformanceTest {
 			}
     	} else if (RUNNING_PERMANCE_TEST) {
     		//Determine if input is correct
-    	    if (args.length >= 5) {
+    	    if (args.length >= 7) {
         		//Run performance tests with ClientPerformanceTest class!
-        	    String server = "";
-        	    String rm_name = "";
         	    String testType = "";
         	    ClientRequestThread.TransactionType transactionType1;
         	    ClientRequestThread.TransactionType transactionType2;
         	    int load = 0;	//set to -1 when running part a)
         	    int submitRequestVariation = 0;
         	    int numberOfClients = 10;
-        	    
-    			server = args[0]; 
-    			
-    		    String elements[] = server.split(":");
-    		    ////
-    		    if (elements.length != 2) {
-    		    	System.err.println("[rmihost] must be in the format [server:rm_name]");
-    		    }
     		    
-    		    server = elements[0];
-    		    rm_name = elements[1];
+    		    testType = args[0];
     		    
-    		    testType = args[1];
-    		    
-    		    transactionType1 = stringToTransactionType(args[2]);
-    		    transactionType2 = stringToTransactionType(args[3]);
+    		    transactionType1 = stringToTransactionType(args[1]);
+    		    transactionType2 = stringToTransactionType(args[2]);
     		    //
-    		    numberOfClients = Integer.parseInt(args[4]);
+    		    numberOfClients = Integer.parseInt(args[3]);
     		    
-    		    int requestTimeLimit = Integer.parseInt(args[5]);
+    		    int requestTimeLimit = Integer.parseInt(args[4]);
 
-    		    try {
-    		    	load = Integer.parseInt(args[6]);
-    		    	submitRequestVariation = Integer.parseInt(args[7]);
-    		    } catch (Exception e) {
-    		    	//this is okay - optional parameters
+    		    load = Integer.parseInt(args[5]);
+    		    submitRequestVariation = Integer.parseInt(args[6]);
+    		    
+    		    //starting at args[7] to length of cmdline arguments, we consider these the names of the individual middlewares
+    		    for (int i = 7; i < args.length; i++) {
+    		    	if (args[i] != null) {
+    		    		if (args[i].length() > 0) {
+    		    			rm_name_list.add(args[i]);
+    		    		}
+    		    	}
     		    }
     		    
         		System.out.println("Running Performance Tests.");
     		    
-        		performanceManager = new ClientPerformanceTest(testType, server, rm_name, transactionType1, transactionType2, numberOfClients, requestTimeLimit, load, submitRequestVariation);
+        		performanceManager = new ClientPerformanceTest(testType, transactionType1, transactionType2, numberOfClients, requestTimeLimit, load, submitRequestVariation);
         		performanceManager.start();
         		
     	    } else {
-    			System.out.println ("Usage: java client rmihost:rmi_name CLIENT_MODE <trxnType1> <trxnType2> <numberOfClients> <requestTimeLimit> [load] [submit_request_variation]" 
+    			System.out.println ("Usage: java client <CLIENT_MODE> <trxnType1> <trxnType2> <numberOfClients> <requestTimeLimit> [load] [submit_request_variation] [middleware0] ... [middlewareN]" 
     					+ "\nCLIENT_MODE = {part_a; part_b; part_c; lock_manager; default=cmdline}"
     					+ "\ntrxnType<N> = {new_customer; book_flight; itinerary}"); 
     			System.exit(1); 
@@ -159,10 +156,8 @@ public class ClientPerformanceTest {
     	}
     }
 	
-	public ClientPerformanceTest(String performanceTestType, String server, String rm_name, ClientRequestThread.TransactionType transactionType1, ClientRequestThread.TransactionType transactionType2, int numberOfClients, double requestTimeLimit, int load, 
+	public ClientPerformanceTest(String performanceTestType, ClientRequestThread.TransactionType transactionType1, ClientRequestThread.TransactionType transactionType2, int numberOfClients, double requestTimeLimit, int load, 
 			int submitRequestVariation) {
-		this.server = server;
-		this.rm_name = rm_name;
 		this.transactionType1 = transactionType1;
 		this.transactionType2 = transactionType2;
 		this.numberOfClients = numberOfClients;
@@ -184,12 +179,39 @@ public class ClientPerformanceTest {
 			//
 			try 
 			{
-				Registry registry = LocateRegistry.getRegistry(server);
-				ResourceManager rm = (ResourceManager) registry.lookup(rm_name);
-				if(rm == null) {
-					throw new Exception();
+//				Registry registry = LocateRegistry.getRegistry(server);
+				ResourceManager rm;
+//				if(rm == null) {
+//					throw new Exception();
+//				}//
+
+				for (int k = 0; k < rm_name_list.size(); k++) {
+					// get a reference to the rmiregistry.
+					System.out.println((String)rm_name_list.get(k));
+					String elements[] = ((String)rm_name_list.get(k)).split(":");
+				     ////
+				     if (elements.length != 2) {
+				     System.err.println("[rmihost] must be in the format [server:rm_name]");
+				     }
+				    
+				     server = elements[0];
+				     rm_name = elements[1];					
+					Registry registry = LocateRegistry.getRegistry(server);
+					// get the proxy and the remote reference by rmiregistry lookup
+					rm = (ResourceManager) registry.lookup(rm_name);
+					if(rm!=null)
+					{
+						System.out.println("Connected to RM #" + k);
+						
+						rmObjList.add(rm);
+					}
+					else
+					{
+						System.out.println("Unsuccessful Connection to RM #" + k);
+					}
 				}
 
+				
 				numberOfThreads = numberOfClients;
 
 				//we use estimated request count to prepare enough data for the test
@@ -198,6 +220,8 @@ public class ClientPerformanceTest {
 				double estimatedRequestCount = (ClientRequestThread.REQUEST_TIME_LIMIT > 20000? ClientRequestThread.REQUEST_TIME_LIMIT/13.3 : ClientRequestThread.REQUEST_TIME_LIMIT/3.5);				
 				//
 				System.out.println("Creating datasets to handle " + estimatedRequestCount + " request each");
+				
+				rm =  new RMReplicaManager(rmObjList);
 				
 				//each iteration represents one unique data set
 				while (counter <= numberOfClients*DATA_SET_SPREAD) {
@@ -309,14 +333,14 @@ public class ClientPerformanceTest {
 			System.out.println("Creating Thread #1 - PART_A");
 			long startTime = System.nanoTime();
 
-			ClientRequestThread crt = new ClientRequestThread(transType, server, rm_name, threadDataSet, 0.0, 0, startTime);
+			ClientRequestThread crt = new ClientRequestThread(transType, rm_name_list, threadDataSet, 0.0, 0, startTime);
 			clientThreadTable.add(crt);
 			crt.run();
 		} else if (performanceTestType.equalsIgnoreCase(PART_CMD_LINE)) {
 			System.out.println("Creating Thread #1 - CMD_LINE_PART");
 			long startTime = System.nanoTime();
 
-			ClientRequestThread crt = new ClientRequestThread(transType, server, rm_name, threadDataSet, requestInterval, submitRequestVariation, startTime);
+			ClientRequestThread crt = new ClientRequestThread(transType, rm_name_list, threadDataSet, requestInterval, submitRequestVariation, startTime);
 			clientThreadTable.add(crt);
 			crt.run();	//////
 		} else if (performanceTestType.equalsIgnoreCase(PART_B)) {
@@ -335,7 +359,9 @@ public class ClientPerformanceTest {
 					trxnType = (i % 2 == 0? transactionType1 : transactionType2);
 				}
 				
-				ClientRequestThread crt = new ClientRequestThread(trxnType, server, rm_name, threadDataSet, requestInterval, submitRequestVariation, startTime);
+				
+				// Khalique TODO: We need to pass in t
+				ClientRequestThread crt = new ClientRequestThread(trxnType, rm_name_list, threadDataSet, requestInterval, submitRequestVariation, startTime);
 				clientThreadTable.add(crt);
 				crt.start();
 			}

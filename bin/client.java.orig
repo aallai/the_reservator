@@ -1,9 +1,19 @@
+import java.rmi.*;
+
+import LockManager.DeadlockException;
+import LockManager.LockManager;
 import ResInterface.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import ResImpl.RMReplicaManager;
 import java.util.*;
 import java.io.*;
+
+import javax.transaction.InvalidTransactionException;
+
+import PerformanceTest.ClientPerformanceTest;
+import PerformanceTest.ClientRequestThread;
+
 
 /*
  * Client Program...
@@ -22,8 +32,50 @@ public class client
 {
     static String message = "blank";
     static ResourceManager rm = null;
+<<<<<<< HEAD
+//
+    private static boolean TESTING_LOCK_MANAGER = false;
+    private static boolean RUNNING_PERMANCE_TEST = false;
+    private static boolean COMMAND_LINE = false;
+    
+    private static ClientPerformanceTest performanceManager;	//we do most of the work for performance analysis in this class
+    
+    public static ClientRequestThread.TransactionType stringToTransactionType(String str) {
+    	if (str.equalsIgnoreCase("new_customer")) {
+    		return ClientRequestThread.TransactionType.NEW_CUSTOMER;
+    	} else if (str.equalsIgnoreCase("itinerary")) {
+    		return ClientRequestThread.TransactionType.ITINERARY;
+    	} else if (str.equalsIgnoreCase("book_flight")) {
+    		return ClientRequestThread.TransactionType.BOOK_FLIGHT;
+    	} else if (str.equalsIgnoreCase("query_bill")) {
+    		return ClientRequestThread.TransactionType.QUERY_BILL;
+    	}
+    	
+    	return ClientRequestThread.TransactionType.VOID;
+    }//
+    //
+    public static void main(String args[]) {
+    	if (args.length == 1) {
+			COMMAND_LINE = true;	
+    	} else if (args.length > 1) {
+    		if (args[1].equalsIgnoreCase("part_a") || args[1].equalsIgnoreCase("part_b")) {
+    			RUNNING_PERMANCE_TEST = true;
+    		} else if (args[1].equalsIgnoreCase("lock_manager")) {
+    			TESTING_LOCK_MANAGER = true;
+    		} else {
+    			COMMAND_LINE = true;
+    		}
+    	} else {
+			System.out.println ("Usage: java client rmihost:rmi_name <CLIENT_MODE> <trxnType1> <trxnType2> <numberOfClients> <requestTimeLimit> [load] [submit_request_variation]" 
+					+ "\nCLIENT_MODE = {part_a; part_b; part_c; lock_manager; default=cmdline}"
+					+ "\ntrxnType<N> = {new_customer; book_flight; itinerary}"); 			
+			System.exit(1);	
+    	}////
+=======
 
-    public static void main(String args[]) {    	
+    public static void main(String args[]) {
+>>>>>>> 412a006a4a086cc8ca6a60b68c4b882290546474
+    	
 	    client obj = new client();
 	    BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
 	    String command = "";

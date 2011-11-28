@@ -1,6 +1,7 @@
 package PerformanceTest;
 
 import java.rmi.registry.LocateRegistry;
+import ResImpl.RMReplicaManager;
 import ResImpl.MiddlewareRMImpl;
 import java.rmi.registry.Registry;
 import java.util.ArrayList;
@@ -24,7 +25,7 @@ public class ClientRequestThread extends Thread
 		QUERY_BILL,
 		VOID
 	}
-	
+
 	private double totalTimeInMilliseconds = 0.0;
 
 	private TransactionType transactionType;
@@ -37,52 +38,68 @@ public class ClientRequestThread extends Thread
 	private ResourceManager rm = null;
 	private int id;
 	private int thread_id;
-	
+
 	private int customer_id;
 	private String location;
 	private Vector<Integer> flightNums = new Vector<Integer>();
 	private static int threadCount = 0;
-	
+
 	private boolean areDataValuesSet = false;	//for part a)
 	private Vector<Object> dataSet = null;	//for part b)
-	
+
 	private long lastRecordedTime;
 
-	public ClientRequestThread(TransactionType transactionType, String server, String rm_name, Vector<Object> aDataSet, double sleepTime, int sleepVariation, long lastRecordedTime) {
+	private ArrayList<ResourceManager> rmObjList = new ArrayList<ResourceManager>();
+
+	public ClientRequestThread(TransactionType transactionType, Vector<String> rmList, Vector<Object> aDataSet, double sleepTime, int sleepVariation, long lastRecordedTime) {
 		this.transactionType = transactionType;
 		this.sleepTime = sleepTime;
 		this.sleepVariation = sleepVariation;
 		this.lastRecordedTime = 0;
 
 		thread_id = ++threadCount;
-//
+		//
 		try 
 		{
-			// get a reference to the rmiregistry.
-			Registry registry = LocateRegistry.getRegistry(server);
-			// get the proxy and the remote reference by rmiregistry lookup
-			rm = (ResourceManager) registry.lookup(rm_name);
-			if(rm!=null)
-			{
-//				System.out.println("Successful");
-//				System.out.println("Connected to RM");
-			}
-			else
-			{
-				System.out.println("Unsuccessful");
-			}
+			for (int k = 0; k < rmList.size(); k++) {
+				// get a reference to the rmiregistry.
+				String elements[] = ((String)rmList.get(k)).split(":");
+				////
+				if (elements.length != 2) {
+					System.err.println("[rmihost] must be in the format [server:rm_name]");
+				}
 
-			if (aDataSet != null) {
-				//we assume this is part b)
-				this.lastRecordedTime = lastRecordedTime;
+				String server = elements[0];
+				String rm_name = elements[1];					
+				Registry registry = LocateRegistry.getRegistry(server);
+				// get the proxy and the remote reference by rmiregistry lookup
+				rm = (ResourceManager) registry.lookup(rm_name);
+				if(rm!=null)
+				{
+					System.out.println("Connected to RM #" + k);
 
-				dataSet = new Vector<Object>();
-				for (int i = 0; i < aDataSet.size(); i++) {
-					customer_id = ((Integer)aDataSet.get(0)).intValue();
-					location = new String( (String)(aDataSet.get(1)) );
-					flightNums.add(new Integer((Integer)aDataSet.get(2)));
+					rmObjList.add(rm);
+				}
+				else
+				{
+					System.out.println("Unsuccessful Connection to RM #" + k);
+				}
+
+				if (aDataSet != null) {
+					//we assume this is part b)
+					this.lastRecordedTime = lastRecordedTime;
+
+					dataSet = new Vector<Object>();
+					for (int i = 0; i < aDataSet.size(); i++) {
+						customer_id = ((Integer)aDataSet.get(0)).intValue();
+						location = new String( (String)(aDataSet.get(1)) );
+						flightNums.add(new Integer((Integer)aDataSet.get(2)));
+					}
 				}
 			}
+
+			//main instance of Resource Manager is the RMReplicaManager
+			rm = new RMReplicaManager(rmObjList);
 		} 
 		catch (Exception e) 
 		{	
@@ -92,14 +109,14 @@ public class ClientRequestThread extends Thread
 			System.exit(1);
 		}
 	}
-	
+
 	//khalique: may need to change this to accept vector of flight numbers
 	//			may also need to add booleans for hasCars and hasHotels...
 	public void setDataValues(int customer_id, int flightNum, String location) {
 		this.customer_id = customer_id;
 		this.flightNums.add(new Integer(flightNum));
 		this.location = location;
-		
+
 		areDataValuesSet = true;
 	}
 
@@ -113,21 +130,21 @@ public class ClientRequestThread extends Thread
 
 		double sum = 0;
 		double averageResponseTime;
-		
+
 		//if dataset is empty this means that we must do setup here
 		if (dataSet == null) {
 			//do setup
-			
+
 			//we use estimated request count to prepare enough data for the test
 			//up to a point we assume the estimation is in line with the time, but after that we may be
 			//overcompensating...so we adjust to avoid have very long setup times before we actually begin the tests.
 			double estimatedRequestCount = (REQUEST_TIME_LIMIT > 20000? REQUEST_TIME_LIMIT/3.0 : REQUEST_TIME_LIMIT);
-			
-			
+
+
 			int theFlightNumber;
 			String theLocation;
 
-			
+
 			//Creating dummy customer to perform transactions with
 			if (!areDataValuesSet) {
 				theLocation = "Toronto";
@@ -143,7 +160,7 @@ public class ClientRequestThread extends Thread
 			} else {
 				theLocation = this.location;
 			}//gg
-			
+
 			switch(transactionType) {
 			case NEW_CUSTOMER:
 				System.out.println("Thread #" + thread_id + " Creating new customers...");
@@ -153,7 +170,7 @@ public class ClientRequestThread extends Thread
 				break;
 			case ITINERARY:
 				System.out.println("Thread #" + thread_id + "Creating itineraries for customer with customer_id: "+customer_id + "...");
-				
+
 				for (double k = 0; k < estimatedRequestCount; k+=1.0) {
 					try{
 						id = rm.startTransaction();
@@ -209,7 +226,7 @@ public class ClientRequestThread extends Thread
 				currentTime = System.nanoTime();
 				totalTimeInMilliseconds += ((double)(currentTime - lastRecordedTime))/NANOSECONDS_PER_MILLISECOND;
 				lastRecordedTime = currentTime;
-				
+
 				switch(transactionType) {
 				case NEW_CUSTOMER:
 					//System.out.println("New Customer");
@@ -231,7 +248,7 @@ public class ClientRequestThread extends Thread
 						end = System.nanoTime();
 						results.add(new Double((double)(end-start)/NANOSECONDS_PER_MILLISECOND));
 					}
-//
+					//
 					break;
 				case QUERY_BILL:
 					//System.out.println("Query Bill");
@@ -253,7 +270,7 @@ public class ClientRequestThread extends Thread
 						end = System.nanoTime();
 						results.add(new Double((double)(end-start)/NANOSECONDS_PER_MILLISECOND));
 					}
-					
+
 					break;
 				case ITINERARY:
 					//System.out.println("Book Itinerary");
@@ -278,10 +295,10 @@ public class ClientRequestThread extends Thread
 
 					break;
 				case BOOK_FLIGHT:
-				//	System.out.println("Thread #" + thread_id + "Book Flight - " + requestCount);
+					//	System.out.println("Thread #" + thread_id + "Book Flight - " + requestCount);
 
 					start = System.nanoTime();
-					
+
 					try {
 						id = rm.startTransaction();
 						rm.reserveFlight(id, customer_id, flightNums.get(0).intValue());
@@ -298,9 +315,9 @@ public class ClientRequestThread extends Thread
 						end = System.nanoTime();
 						results.add(new Double((double)(end-start)/NANOSECONDS_PER_MILLISECOND));
 					}
-					
-			//		System.out.println("Thread #" + thread_id + "BOOKED Flight");
-					
+
+					//		System.out.println("Thread #" + thread_id + "BOOKED Flight");
+
 					break;
 				}
 
@@ -322,7 +339,7 @@ public class ClientRequestThread extends Thread
 		//	System.out.println("Response Times...");
 		for (int j = 0; j < results.size(); j++) {
 			sum += results.get(j).intValue();
-		//		System.out.println("respTime = " + results.get(j).intValue());
+			//		System.out.println("respTime = " + results.get(j).intValue());
 		}
 
 		try {
