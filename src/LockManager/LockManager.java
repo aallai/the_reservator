@@ -179,14 +179,27 @@ public class LockManager
                                 // data item just unlocked. 
                                 Vector vect1 = this.lockTable.elements(dataObj);
                                 
+                                boolean wakeup = false;
+                                
+                                if (vect.size() == 0) {
+                                	wakeup = true;
+                                } else {
+                                	TrxnObj obj = (TrxnObj) vect.firstElement();
+                                	if (obj.getXId() == xid) {
+                                		wakeup = true;
+                                	}
+                                }
+                                
+                                
                                 // remove interrupted thread from waitTable only if no
                                 // other transaction has locked this data item
-                                if (vect1.size () == 0) {
+                                if (wakeup) {
                                     this.waitTable.remove(waitObj);     
                                     
                                     try {
                                         synchronized (waitObj.getThread())    {
                                             waitObj.getThread().notify();
+                                        	//waitObj.getThread().interrupt();
                                         }    
                                     }
                                     catch (Exception e)    {
@@ -211,6 +224,7 @@ public class LockManager
                             try {
                                 synchronized (waitObj.getThread()) {
                                     waitObj.getThread().notify();
+                                	//waitObj.getThread().interrupt();
                                 }    
                             }
                             catch (Exception e) {
