@@ -185,7 +185,7 @@ public class LockManager
                                 	wakeup = true;
                                 } else {
                                 	TrxnObj obj = (TrxnObj) vect.firstElement();
-                                	if (obj.getXId() == xid) {
+                                	if (obj.getXId() == xid && vect.size() == 1) {
                                 		wakeup = true;
                                 	}
                                 }
