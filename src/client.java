@@ -51,7 +51,7 @@ public class client
     	}
     	
     	return ClientRequestThread.TransactionType.VOID;
-    }
+    }//
     //
     public static void main(String args[]) {
     	if (args.length == 1) {
@@ -69,7 +69,7 @@ public class client
 					+ "\nCLIENT_MODE = {part_a; part_b; part_c; lock_manager; default=cmdline}"
 					+ "\ntrxnType<N> = {new_customer; book_flight; itinerary}"); 			
 			System.exit(1);	
-    	}
+    	}////
     	
     	if (TESTING_LOCK_MANAGER) {
     		System.out.println("Testing Lock Manager");

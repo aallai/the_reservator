@@ -67,7 +67,7 @@ public class ClientPerformanceTest {
 			this.numberOfClients = numberOfClients;
 			
 			System.out.println("Creating Threads - PART_B");
-			
+			//
 			try 
 			{
 				Registry registry = LocateRegistry.getRegistry(server);
@@ -81,7 +81,7 @@ public class ClientPerformanceTest {
 				//we use estimated request count to prepare enough data for the test
 				//up to a point we assume the estimation is in line with the time, but after that we may be
 				//overcompensating...so we adjust to avoid have very long setup times before we actually begin the tests.
-				double estimatedRequestCount = (ClientRequestThread.REQUEST_TIME_LIMIT > 20000? ClientRequestThread.REQUEST_TIME_LIMIT/10.0 : ClientRequestThread.REQUEST_TIME_LIMIT/1.5);				
+				double estimatedRequestCount = (ClientRequestThread.REQUEST_TIME_LIMIT > 20000? ClientRequestThread.REQUEST_TIME_LIMIT/13.3 : ClientRequestThread.REQUEST_TIME_LIMIT/3.5);				
 				//
 				System.out.println("Creating datasets to handle " + estimatedRequestCount + " request each");
 				

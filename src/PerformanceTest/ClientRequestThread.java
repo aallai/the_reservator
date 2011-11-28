@@ -8,7 +8,8 @@ import java.util.Vector;
 import ResImpl.*;
 
 import ResInterface.ResourceManager;
-
+//
+//
 public class ClientRequestThread extends Thread 
 {//
 	public static final double MILLISECONDS_PER_SECOND = 1000;
@@ -54,7 +55,7 @@ public class ClientRequestThread extends Thread
 		this.lastRecordedTime = 0;
 
 		thread_id = ++threadCount;
-
+//
 		try 
 		{
 			// get a reference to the rmiregistry.
