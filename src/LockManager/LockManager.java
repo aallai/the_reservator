@@ -9,7 +9,7 @@ public class LockManager
     public static final int WRITE = 1;
     
     private static int TABLE_SIZE = 2039;
-    private static int DEADLOCK_TIMEOUT = 10000;
+    private static int DEADLOCK_TIMEOUT = 60000;
     
     private static TPHashTable lockTable = new TPHashTable(LockManager.TABLE_SIZE);
     private static TPHashTable stampTable = new TPHashTable(LockManager.TABLE_SIZE);
