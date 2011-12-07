@@ -800,6 +800,12 @@ public class MiddlewareRMImpl implements ResourceManager {
 		set_timer(t);
 		read_unlock(t);
 	}
+
+	@Override
+	public int beat() throws RemoteException {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }
 
 

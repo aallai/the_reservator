@@ -128,4 +128,6 @@ public interface ResourceManager extends Remote
     boolean abortTransaction(int tid) throws RemoteException, InvalidTransactionNumException;
     
     public void reset_timer(int tid) throws RemoteException, InvalidTransactionNumException;
+
+	int beat() throws RemoteException;
 }

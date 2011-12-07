@@ -1,7 +1,6 @@
 package PerformanceTest;
 
 import java.rmi.registry.LocateRegistry;
-import ResImpl.RMReplicaManager;
 import ResImpl.MiddlewareRMImpl;
 import java.rmi.registry.Registry;
 import java.util.ArrayList;
@@ -99,7 +98,7 @@ public class ClientRequestThread extends Thread
 			}
 
 			//main instance of Resource Manager is the RMReplicaManager
-			rm = new RMReplicaManager(rmObjList);
+			rm = new RMReplicationManager(rmObjList);
 		} 
 		catch (Exception e) 
 		{	
@@ -334,7 +333,7 @@ public class ClientRequestThread extends Thread
 			System.out.println("Ooops " + e.getMessage());
 			e.printStackTrace();
 		}	
-
+		
 		//print all values while taking avergae
 		//	System.out.println("Response Times...");
 		for (int j = 0; j < results.size(); j++) {

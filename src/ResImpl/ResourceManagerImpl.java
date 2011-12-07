@@ -958,4 +958,11 @@ public class ResourceManagerImpl
     {
     	return;  // nop
     }
+
+
+	@Override
+	public int beat() throws RemoteException {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }

@@ -7,7 +7,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Vector;
 
-import ResImpl.RMReplicaManager;
+import ResImpl.RMReplicationManager;
 import ResInterface.ResourceManager;
 
 import LockManager.DeadlockException;
@@ -176,14 +176,10 @@ public class ClientPerformanceTest {
 			this.numberOfClients = numberOfClients;
 			
 			System.out.println("Creating Threads - PART_B");
-			//
+			
 			try 
 			{
-//				Registry registry = LocateRegistry.getRegistry(server);
 				ResourceManager rm;
-//				if(rm == null) {
-//					throw new Exception();
-//				}//
 
 				for (int k = 0; k < rm_name_list.size(); k++) {
 					// get a reference to the rmiregistry.
@@ -221,7 +217,7 @@ public class ClientPerformanceTest {
 				//
 				System.out.println("Creating datasets to handle " + estimatedRequestCount + " request each");
 				
-				rm =  new RMReplicaManager(rmObjList);
+				rm =  new RMReplicationManager(rmObjList);
 				
 				//each iteration represents one unique data set
 				while (counter <= numberOfClients*DATA_SET_SPREAD) {
@@ -342,7 +338,7 @@ public class ClientPerformanceTest {
 
 			ClientRequestThread crt = new ClientRequestThread(transType, rm_name_list, threadDataSet, requestInterval, submitRequestVariation, startTime);
 			clientThreadTable.add(crt);
-			crt.run();	//////
+			crt.run();
 		} else if (performanceTestType.equalsIgnoreCase(PART_B)) {
 			ClientRequestThread.TransactionType trxnType;					
 			long startTime = System.nanoTime();

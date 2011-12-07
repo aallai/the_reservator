@@ -1,7 +1,6 @@
 import ResInterface.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import ResImpl.RMReplicaManager;
 import java.util.*;
 import java.io.*;
 
@@ -45,10 +44,10 @@ public class client
 			System.exit(-1);
 	    }
 	    
-	    ArrayList<ResourceManager> rm_list = new ArrayList<ResourceManager>();
 	    
-	    for (String s : args) {
-		    String elements[] = s.split(":");
+	    //connection to rmreplicationmanager should be made here
+	    	    
+		    String elements[] = args[0].split(":");
 		    
 		    if (elements.length != 2) {
 		    	System.err.println("[rmihost] must be in the format [server:rm_name]");
@@ -63,15 +62,6 @@ public class client
 				Registry registry = LocateRegistry.getRegistry(server);
 				// get the proxy and the remote reference by rmiregistry lookup
 				rm = (ResourceManager) registry.lookup(rm_name);
-				
-				if(rm!=null) {
-					rm_list.add(rm);
-					System.out.println("Connected to RM " + rm_name);
-				} else {
-					System.out.println("Unsuccessful");
-					System.out.println("Not connected to RM");
-					System.exit(-1);
-				}
 			} 
 			catch (Exception e) 
 			{	
@@ -79,9 +69,8 @@ public class client
 				e.printStackTrace();
 				System.exit(1);
 			}
-	    }
-	    
-		rm = new RMReplicaManager(rm_list);
+	    		
+		//everything above shuold be replaced with connection to rmreplicationmanager
 	    
 	    System.out.println("\n\n\tClient Interface");
 	    System.out.println("Type \"help\" for list of supported commands");
